@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monetization - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+            <a href="/dashboard/newsletter.html" class="nav-item"><i class="fas fa-envelope"></i> Newsletter</a>
+
+            <div class="nav-section-title">Growth &amp; SEO</div>
+            <a href="/dashboard/analytics.html" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="/dashboard/keywords.html" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
+            <a href="/dashboard/calendar.html" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+            <a href="/dashboard/monetization.html" class="nav-item active"><i class="fas fa-dollar-sign"></i> Monetization</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <h2 style="font-size: 1rem; font-weight: 600; margin: 0;">Monetization Dashboard</h2>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-primary text-sm" onclick="window.openSponsorModal()">
+                    <i class="fas fa-plus"></i> Add Sponsor
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+
+            <!-- Stat Cards -->
+            <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-dollar-sign text-orange"></i></div>
+                    <div class="stat-label">MRR (Monthly)</div>
+                    <div class="stat-value" id="mrr-value">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-star text-orange"></i></div>
+                    <div class="stat-label">Premium Posts</div>
+                    <div class="stat-value" id="premium-post-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-crown text-orange"></i></div>
+                    <div class="stat-label">Premium Subscribers</div>
+                    <div class="stat-value" id="premium-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-ad text-orange"></i></div>
+                    <div class="stat-label">Active Sponsors</div>
+                    <div class="stat-value" id="active-sponsors-count">0</div>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <!-- Sponsors Table -->
+                <div class="panel" style="padding: 0; overflow: hidden;">
+                    <div class="panel-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                        <h3 class="panel-title">Active Sponsors</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Sponsor Name</th>
+                                    <th>Slot</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>End Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sponsors-table-body">
+                                <tr>
+                                    <td colspan="6" class="text-center text-secondary">Loading sponsors...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Support Widget Config -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Support Widget Settings</h3>
+                    </div>
+                    <div class="panel-body">
+                        <form id="support-config-form">
+                            <div style="margin-bottom: 1rem;">
+                                <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="enable-tipping">
+                                    <span>Enable Tipping ("Buy me a coffee") on articles</span>
+                                </label>
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label class="form-label">Payment Link URL (Stripe/PayPal)</label>
+                                <input type="url" id="support-url" class="form-control" placeholder="https://buy.stripe.com/...">
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label class="form-label">Support Message</label>
+                                <textarea id="support-message" class="form-control" rows="3">If you enjoy my deep dives, consider supporting the blog!</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full"><i class="fas fa-save"></i> Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Sponsor Modal -->
+    <div id="sponsor-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 100%; max-width: 500px; display: flex; flex-direction: column;">
+            <div class="modal-header flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <h2 class="text-xl font-bold" id="sponsor-modal-title">Sponsor Details</h2>
+                <button id="sponsor-close" class="text-secondary hover:text-white" onclick="document.getElementById('sponsor-modal').style.display='none'"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body flex-col gap-md" style="padding: 1.5rem;">
+                <form id="sponsor-form">
+                    <input type="hidden" id="sponsor-id">
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Sponsor Name</label>
+                        <input type="text" id="sponsor-name" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Website URL</label>
+                        <input type="url" id="sponsor-website" class="form-control">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Slot</label>
+                        <select id="sponsor-slot" class="form-control">
+                            <option value="Newsletter Top">Newsletter Top</option>
+                            <option value="Sidebar Ad">Sidebar Ad</option>
+                            <option value="Footer Logo">Footer Logo</option>
+                            <option value="Article Inline">Article Inline</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Amount (Monthly $)</label>
+                        <input type="number" id="sponsor-amount" class="form-control" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Status</label>
+                        <select id="sponsor-status" class="form-control">
+                            <option value="active">Active</option>
+                            <option value="expiring">Expiring Soon</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-sm" style="margin-bottom: 1.5rem;">
+                        <div class="flex-grow">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="sponsor-start" class="form-control" required>
+                        </div>
+                        <div class="flex-grow">
+                            <label class="form-label">End Date</label>
+                            <input type="date" id="sponsor-end" class="form-control" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full" id="sponsor-save-btn">Save Sponsor</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { loadMonetizationDashboard, addSponsor, updateSponsor, saveSupportConfig } from '/js/monetization.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            await loadMonetizationDashboard();
+
+            document.getElementById('support-config-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveSupportConfig(
+                    document.getElementById('enable-tipping').checked,
+                    document.getElementById('support-url').value,
+                    document.getElementById('support-message').value
+                );
+            });
+
+            // Sponsor Modal form handling
+            document.getElementById('sponsor-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const id = document.getElementById('sponsor-id').value;
+                const formObj = {
+                    name: document.getElementById('sponsor-name').value,
+                    website: document.getElementById('sponsor-website').value,
+                    slot: document.getElementById('sponsor-slot').value,
+                    amount: document.getElementById('sponsor-amount').value,
+                    status: document.getElementById('sponsor-status').value,
+                    startDate: document.getElementById('sponsor-start').value,
+                    endDate: document.getElementById('sponsor-end').value
+                };
+
+                if (id) updateSponsor(id, formObj);
+                else addSponsor(formObj);
+
+                document.getElementById('sponsor-modal').style.display = 'none';
+            });
+            
+            // Expose open modal logically
+            window.openSponsorModal = (sponsor = null) => {
+                const modal = document.getElementById('sponsor-modal');
+                const form = document.getElementById('sponsor-form');
+                
+                form.reset();
+                document.getElementById('sponsor-id').value = '';
+                document.getElementById('sponsor-modal-title').textContent = 'Add New Sponsor';
+                
+                if (sponsor) {
+                    document.getElementById('sponsor-modal-title').textContent = 'Edit Sponsor';
+                    document.getElementById('sponsor-id').value = sponsor.id;
+                    document.getElementById('sponsor-name').value = sponsor.name;
+                    document.getElementById('sponsor-website').value = sponsor.website;
+                    document.getElementById('sponsor-slot').value = sponsor.slot;
+                    document.getElementById('sponsor-amount').value = sponsor.amount;
+                    document.getElementById('sponsor-status').value = sponsor.status;
+                    document.getElementById('sponsor-start').value = sponsor.startDate;
+                    document.getElementById('sponsor-end').value = sponsor.endDate;
+                }
+                
+                modal.style.display = 'flex';
+            };
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Editor - Ace Admin</title>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Global & Dashboard CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+
+    <style>
+        /* Editor Specific Styles */
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .editor-main {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 140px);
+        }
+
+        .editor-toolbar {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            background-color: rgba(255, 255, 255, 0.02);
+            border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 0.25rem;
+            padding-right: 0.5rem;
+            margin-right: 0.5rem;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .toolbar-btn:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .toolbar-btn.is-active {
+            background-color: rgba(255, 138, 0, 0.1);
+            color: var(--brand-orange);
+            border-color: rgba(255, 138, 0, 0.2);
+        }
+
+        .title-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 2rem 2rem 1rem 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .title-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Tiptap Editor Content Area */
+        .tiptap {
+            padding: 0 2rem 2rem 2rem;
+            flex-grow: 1;
+            outline: none;
+            font-size: 1.125rem;
+            line-height: 1.8;
+            color: #d1d5db;
+        }
+
+        .tiptap p.is-editor-empty:first-child::before {
+            content: attr(data-placeholder);
+            float: left;
+            color: var(--text-muted);
+            pointer-events: none;
+            height: 0;
+        }
+
+        .tiptap h2,
+        .tiptap h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .tiptap blockquote {
+            border-left: 3px solid var(--brand-orange);
+            padding-left: 1rem;
+            margin-left: 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* Sidebar Panels */
+        .settings-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        /* Distraction Free Mode */
+        body.distraction-free .dashboard-sidebar,
+        body.distraction-free .settings-sidebar,
+        body.distraction-free .editor-toolbar {
+            display: none !important;
+        }
+
+        body.distraction-free .dashboard-topbar {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        body.distraction-free .editor-container {
+            grid-template-columns: 1fr;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        body.distraction-free .editor-main {
+            border: none;
+            background: transparent;
+        }
+        
+        body.distraction-free .dashboard-content {
+            padding: 0 1rem;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item active"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="#" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="#" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Growth & SEO</div>
+            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <a href="/dashboard/index.html" class="text-secondary hover:text-white"><i
+                        class="fas fa-arrow-left"></i> Back</a>
+                <span class="text-secondary" style="margin: 0 0.5rem;">|</span>
+                <span id="save-status" class="text-sm text-secondary">Draft Saved</span>
+            </div>
+            <div class="topbar-right flex items-center gap-sm">
+                <div class="flex items-center gap-sm mr-md text-xs text-secondary" id="editor-stats">
+                    <span id="word-count">0 words</span>
+                    <span>&bull;</span>
+                    <span id="read-time">1 min read</span>
+                    <span>&bull;</span>
+                    <span id="readability-score" class="badge">Easy</span>
+                </div>
+                <button class="btn btn-outline text-sm" id="distraction-free-btn" title="Distraction Free Mode"><i class="fas fa-expand-arrows-alt"></i></button>
+                <button class="btn btn-outline text-sm" id="save-draft-btn">Save Draft</button>
+                <button class="btn btn-primary text-sm" id="publish-btn">Publish Post</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="editor-container">
+
+                <!-- Left: Rich Text Editor -->
+                <div class="editor-main">
+                    <div class="editor-toolbar" id="toolbar">
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-action="bold" title="Bold"><i
+                                    class="fas fa-bold"></i></button>
+                            <button class="toolbar-btn" data-action="italic" title="Italic"><i
+                                    class="fas fa-italic"></i></button>
+                            <button class="toolbar-btn" data-action="underline" title="Underline"><i
+                                    class="fas fa-underline"></i></button>
+                            <button class="toolbar-btn" data-action="strike" title="Strikethrough"><i
+                                    class="fas fa-strikethrough"></i></button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-action="h1" title="Heading 1">H1</button>
+                            <button class="toolbar-btn" data-action="h2" title="Heading 2">H2</button>
+                            <button class="toolbar-btn" data-action="h3" title="Heading 3">H3</button>
+                            <button class="toolbar-btn" data-action="bulletList" title="Bullet List"><i
+                                    class="fas fa-list-ul"></i></button>
+                            <button class="toolbar-btn" data-action="orderedList" title="Numbered List"><i
+                                    class="fas fa-list-ol"></i></button>
+                            <button class="toolbar-btn" data-action="blockquote" title="Quote"><i
+                                    class="fas fa-quote-right"></i></button>
+                            <button class="toolbar-btn" data-action="link" title="Insert Link"><i
+                                    class="fas fa-link"></i></button>
+                            <button class="toolbar-btn" data-action="image" title="Insert Image"><i
+                                    class="fas fa-image"></i></button>
+                            <button class="toolbar-btn" data-action="codeBlock" title="Code Block"><i
+                                    class="fas fa-code"></i></button>
+                            <button class="toolbar-btn" data-action="horizontalRule" title="Divider"><i
+                                    class="fas fa-minus"></i></button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" data-action="undo" title="Undo"><i
+                                    class="fas fa-undo"></i></button>
+                            <button class="toolbar-btn" data-action="redo" title="Redo"><i
+                                    class="fas fa-redo"></i></button>
+                        </div>
+                    </div>
+
+                    <input type="text" id="post-title" class="title-input" placeholder="Enter article title...">
+                    <div id="tiptap-editor"></div>
+                </div>
+
+                <!-- Right: Settings Sidebar -->
+                <div class="settings-sidebar">
+
+                    <!-- Post Settings -->
+                    <div class="panel" style="margin-bottom: 0;">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Post Settings</h3>
+                        </div>
+                        <div class="panel-body flex-col gap-md">
+
+                            <!-- Slug -->
+                            <div>
+                                <label class="form-label">URL Slug</label>
+                                <div class="flex gap-sm">
+                                    <input type="text" id="post-slug" class="form-control" placeholder="auto-generated-from-title">
+                                </div>
+                                <div class="form-help">Auto-generated from title. You can edit it.</div>
+                            </div>
+
+                            <!-- Category -->
+                            <div>
+                                <label class="form-label">Category</label>
+                                <select id="post-category" class="form-control">
+                                    <option value="">Select a category...</option>
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+
+                            <!-- Cover Image -->
+                            <div>
+                                <label class="form-label">Cover Image URL</label>
+                                <div class="flex gap-sm">
+                                    <input type="text" id="cover-image" class="form-control"
+                                        placeholder="https:// images.unsplash.com/...">
+                                </div>
+                                <div class="text-xs text-orange mt-sm cursor-pointer hover:underline"
+                                    style="margin-top: 0.5rem;" id="cover-unsplash-btn">
+                                    <i class="fas fa-image"></i> Browse Unsplash
+                                </div>
+                            </div>
+
+                            <!-- Excerpt -->
+                            <div>
+                                <label class="form-label">Excerpt / Subtitle</label>
+                                <textarea id="post-excerpt" class="form-control" rows="3"
+                                    placeholder="Brief summary for cards..."></textarea>
+                            </div>
+
+                            <!-- Status -->
+                            <div>
+                                <label class="form-label">Status</label>
+                                <select id="post-status" class="form-control">
+                                    <option value="draft">Draft</option>
+                                    <option value="published">Published</option>
+                                    <option value="scheduled">Scheduled</option>
+                                </select>
+                            </div>
+
+                            <!-- Scheduled Date (hidden unless Scheduled) -->
+                            <div id="scheduled-date-wrap" style="display:none;">
+                                <label class="form-label">Scheduled Date &amp; Time</label>
+                                <input type="datetime-local" id="post-scheduled-at" class="form-control">
+                            </div>
+
+                            <!-- Toggles -->
+                            <div class="flex items-center justify-between"
+                                style="padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
+                                <label class="form-label mb-0" style="margin-bottom: 0;">Featured Post</label>
+                                <input type="checkbox" id="is-featured">
+                            </div>
+                            <div class="flex items-center justify-between"
+                                style="padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
+                                <label class="form-label mb-0" style="margin-bottom: 0;">Premium Content</label>
+                                <input type="checkbox" id="is-premium">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post Revisions Panel -->
+                    <div class="panel" style="margin-bottom: 0;">
+                        <div class="panel-header">
+                            <h3 class="panel-title flex items-center gap-sm">
+                                <i class="fas fa-history text-orange"></i> Revision History
+                            </h3>
+                        </div>
+                        <div class="panel-body flex-col gap-sm" id="revisions-list">
+                            <div class="text-xs text-secondary italic">No revisions saved yet.</div>
+                        </div>
+                    </div>
+
+                    <!-- SEO Panel -->
+                    <div class="panel" style="margin-bottom: 0;">
+                        <div class="panel-header">
+                            <h3 class="panel-title flex items-center gap-sm">
+                                <i class="fas fa-search text-orange"></i> SEO Tools
+                            </h3>
+                        </div>
+                        <div class="panel-body flex-col gap-md">
+                            <div
+                                style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.75rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span class="text-sm font-semibold">SEO Score</span>
+                                <span class="badge" style="background: #10b981; color: #000;" id="seo-score-badge">0/100</span>
+                            </div>
+
+                            <div>
+                                <label class="form-label">Focus Keyword</label>
+                                <input type="text" id="seo-keyword" class="form-control" placeholder="Target keyword...">
+                            </div>
+
+                            <div>
+                                <label class="form-label">Meta Title</label>
+                                <input type="text" id="seo-title" class="form-control"
+                                    placeholder="Defaults to post title">
+                                <div class="form-help"><span id="seo-title-count">0</span> / 60 characters</div>
+                            </div>
+
+                            <div>
+                                <label class="form-label">Meta Description</label>
+                                <textarea id="seo-desc" class="form-control" rows="3"
+                                    placeholder="Description for search engines..."></textarea>
+                                <div class="form-help"><span id="seo-desc-count">0</span> / 160 characters</div>
+                            </div>
+                            
+                            <div>
+                                <label class="form-label">OG Image URL</label>
+                                <input type="text" id="seo-og-image" class="form-control" placeholder="Specific image for social sharing...">
+                            </div>
+
+                            <div>
+                                <label class="form-label">Canonical URL</label>
+                                <input type="text" id="seo-canonical" class="form-control" placeholder="https://...">
+                            </div>
+
+                            <!-- SEO Checklist -->
+                            <div class="mt-md" style="margin-top: 1rem;">
+                                <h4 class="text-sm font-semibold mb-sm">SEO Checklist</h4>
+                                <div class="flex-col gap-xs text-sm" id="seo-checklist">
+                                    <!-- Populated via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Assistant Panel -->
+                    <div class="panel" style="margin-bottom: 0;">
+                        <div class="panel-header">
+                            <h3 class="panel-title flex items-center gap-sm">
+                                <i class="fas fa-robot text-orange"></i> AI Assistant
+                            </h3>
+                        </div>
+                        <div class="panel-body flex-col gap-md">
+                            <textarea id="ai-prompt" class="form-control" rows="3" placeholder="Ask AI to write or rewrite..."></textarea>
+                            <div class="flex gap-sm flex-wrap">
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-improve">Improve</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-grammar">Grammar</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-summarize">Summarize</button>
+                            </div>
+                            <button class="btn btn-primary w-full mt-sm" id="btn-ai-generate"><i class="fas fa-magic"></i> Generate text</button>
+                        </div>
+                    </div>
+
+                    <!-- Gemini SEO Panel -->
+                    <div class="panel" style="margin-bottom: 0;">
+                        <div class="panel-header">
+                            <h3 class="panel-title flex items-center gap-sm">
+                                <i class="fas fa-chart-bar text-orange"></i> Keyword Research
+                            </h3>
+                        </div>
+                        <div class="panel-body flex-col gap-md">
+                            <button class="btn btn-primary w-full" id="btn-gemini-analyze"><i class="fas fa-search"></i> Analyze Keyword with AI</button>
+                            <div id="gemini-results" class="form-help mt-sm text-sm" style="display:none; background:rgba(255,138,0,0.05); border:1px solid rgba(255,138,0,0.2); padding:0.75rem; border-radius:8px;">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div class="form-help mt-sm text-center">Analyze focus keyword to get NLP terms, competitor titles, and target word counts.</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Unsplash Modal -->
+    <div id="unsplash-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <h2 class="text-xl font-bold"><i class="fas fa-image text-orange"></i> Unsplash Library</h2>
+                <button id="unsplash-close" class="text-secondary hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body flex-col gap-md" style="padding: 1.5rem; overflow-y: auto;">
+                <div class="flex gap-sm">
+                    <input type="text" id="unsplash-search-input" class="form-control flex-grow" placeholder="Search high-resolution images...">
+                    <button id="unsplash-search-btn" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+                </div>
+                <!-- Results Grid -->
+                <div id="unsplash-results" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <!-- Images go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Picker Modal -->
+    <div id="link-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <h2 class="text-xl font-bold"><i class="fas fa-link text-orange"></i> Insert Link</h2>
+                <button id="link-close" class="text-secondary hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body flex-col gap-md" style="padding: 1.5rem; overflow-y: auto;">
+                <div>
+                    <label class="form-label">External URL</label>
+                    <div class="flex gap-sm">
+                        <input type="text" id="link-external-input" class="form-control flex-grow" placeholder="https://...">
+                        <button id="link-external-btn" class="btn btn-primary">Add Link</button>
+                    </div>
+                </div>
+                <hr style="border-color: var(--border-color); margin: 1rem 0;">
+                <div>
+                    <label class="form-label">Or search internal posts</label>
+                    <input type="text" id="link-internal-search" class="form-control mb-sm" placeholder="Search published posts...">
+                    <div id="link-internal-results" class="flex-col gap-xs" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Results populate here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script type="module">
+        import { requireAuth, getUser } from '/js/auth.js';
+        import { getCategories, createPost, generateClaudeResponse, generateGeminiSEO, getPostById, updatePost } from '/js/api.js';
+        import { checkReadability, calculateSEOScore } from '/js/seo.js';
+        import { setupUnsplashModal } from '/js/unsplash.js';
+
+        // Import Tiptap from esm.sh CDN
+        import { Editor } from 'https://esm.sh/@tiptap/core@2.2.4';
+        import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.2.4';
+        import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2.2.4';
+        import Underline from 'https://esm.sh/@tiptap/extension-underline@2.2.4';
+        import Image from 'https://esm.sh/@tiptap/extension-image@2.2.4';
+        import Link from 'https://esm.sh/@tiptap/extension-link@2.2.4';
+
+        let editor;
+        let currentUser;
+        let currentUnsplashTarget = null;
+        let currentPostId = new URLSearchParams(window.location.search).get('id');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Auth Guard
+            const session = await requireAuth();
+            if (!session) return;
+            
+            document.body.style.display = 'flex';
+            currentUser = (await getUser()).user;
+
+            // Load Categories into dropdown
+            await loadCategories();
+
+            // Initialize TipTap
+            initEditor();
+
+            if (currentPostId) {
+                await loadPostData(currentPostId);
+            }
+            
+            renderRevisions();
+
+            // Unsplash Setup
+            setupUnsplashModal('unsplash-modal', 'unsplash-search-input', 'unsplash-results', (url, alt, credit) => {
+                if (currentUnsplashTarget === 'cover') {
+                    document.getElementById('cover-image').value = url;
+                } else if (currentUnsplashTarget === 'editor') {
+                    editor.chain().focus().setImage({ src: url, alt: alt }).run();
+                    editor.chain().focus().insertContent(`<p class="text-sm text-secondary italic text-center">${credit}</p>`).run();
+                }
+            });
+
+            document.getElementById('unsplash-close').addEventListener('click', () => {
+                document.getElementById('unsplash-modal').style.display = 'none';
+            });
+
+            document.getElementById('cover-unsplash-btn').addEventListener('click', () => {
+                currentUnsplashTarget = 'cover';
+                if (window.openUnsplashModal) window.openUnsplashModal();
+            });
+
+            // Link Picker Setup
+            setupLinkPicker();
+
+            // Slug: auto-generate from title (only if slug not manually edited)
+            const titleEl = document.getElementById('post-title');
+            const slugEl = document.getElementById('post-slug');
+            let slugManuallyEdited = false;
+            slugEl.addEventListener('input', () => { slugManuallyEdited = true; });
+            titleEl.addEventListener('input', () => {
+                if (!slugManuallyEdited) slugEl.value = slugify(titleEl.value);
+                updateStats(editor);
+            });
+
+            // Status selector: show/hide scheduled datetime
+            document.getElementById('post-status').addEventListener('change', (e) => {
+                document.getElementById('scheduled-date-wrap').style.display =
+                    e.target.value === 'scheduled' ? 'block' : 'none';
+            });
+
+            // Bind Buttons
+            document.getElementById('publish-btn').addEventListener('click', () => {
+                const status = document.getElementById('post-status').value;
+                const titleVal = document.getElementById('post-title').value || 'this post';
+                if (status === 'scheduled') {
+                    const scheduledAt = document.getElementById('post-scheduled-at').value;
+                    if (!scheduledAt) { alert('Please set a scheduled date and time.'); return; }
+                    if (confirm(`Schedule "${titleVal}" for ${new Date(scheduledAt).toLocaleString()}?`)) savePost();
+                } else if (status === 'published') {
+                    if (confirm(`Publish "${titleVal}" now? It will be live immediately.`)) savePost();
+                } else {
+                    savePost();
+                }
+            });
+            document.getElementById('save-draft-btn').addEventListener('click', () => {
+                document.getElementById('post-status').value = 'draft';
+                savePost();
+            });
+            document.getElementById('distraction-free-btn').addEventListener('click', () => {
+                document.body.classList.toggle('distraction-free');
+            });
+
+            // AI Features Setup
+            setupAIButtons();
+
+            // Bind SEO Inputs to trigger updates
+            ['seo-title', 'seo-desc', 'seo-keyword'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', () => updateStats(editor));
+            });
+        });
+
+        async function doAIAction(btnId, promptBaseText) {
+            const btn = document.getElementById(btnId);
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Working...';
+                btn.disabled = true;
+
+                const { from, to } = editor.state.selection;
+                const textContext = editor.state.doc.textBetween(from, to, ' ') || editor.getText();
+                
+                const customPrompt = document.getElementById('ai-prompt').value.trim();
+                const actualPrompt = customPrompt ? `${promptBaseText}: ${customPrompt}` : promptBaseText;
+
+                const response = await generateClaudeResponse(actualPrompt, textContext);
+
+                // Insert into Tiptap
+                if (from !== to) {
+                    editor.chain().focus().insertContentAt({from, to}, response).run();
+                } else {
+                    editor.chain().focus().insertContent(response + "\n\n").run();
+                }
+
+                document.getElementById('ai-prompt').value = '';
+            } catch (err) {
+                alert("AI Error: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function setupAIButtons() {
+            document.getElementById('btn-ai-improve').addEventListener('click', () => 
+                doAIAction('btn-ai-improve', 'Rewrite to improve clarity, flow, and punchiness.')
+            );
+            document.getElementById('btn-ai-grammar').addEventListener('click', () => 
+                doAIAction('btn-ai-grammar', 'Fix all grammar and spelling errors. Do not change the overall meaning.')
+            );
+            document.getElementById('btn-ai-summarize').addEventListener('click', () => 
+                doAIAction('btn-ai-summarize', 'Write a concise, engaging 2-3 sentence summary of the following content.')
+            );
+            document.getElementById('btn-ai-generate').addEventListener('click', () => 
+                doAIAction('btn-ai-generate', 'Write a cohesive continuation or perform the requested task based on the content.')
+            );
+
+            // Gemini SEO Button
+            document.getElementById('btn-gemini-analyze').addEventListener('click', async () => {
+                const kw = document.getElementById('seo-keyword').value.trim();
+                if (!kw) {
+                    alert("Please enter a Focus Keyword first.");
+                    return;
+                }
+                const btn = document.getElementById('btn-gemini-analyze');
+                const prev = btn.innerHTML;
+                try {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+                    btn.disabled = true;
+                    const content = editor.getText();
+                    
+                    const result = await generateGeminiSEO(kw, content);
+                    
+                    const resDiv = document.getElementById('gemini-results');
+                    resDiv.style.display = 'block';
+                    resDiv.innerHTML = `
+                        <div class="mb-sm"><strong>Target:</strong> ~${result.recommendedWordCount} words</div>
+                        <div class="mb-sm"><strong>NLP Terms:</strong> 
+                            <div class="flex flex-wrap gap-xs mt-xs">
+                                ${result.nlpTerms.map(t => `<span class="bg-black/30 rounded px-2 py-0.5 text-xs text-orange">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="mb-sm"><strong>Competitors:</strong>
+                            <ul class="list-disc pl-4 text-xs mt-xs text-secondary space-y-1">
+                                ${result.competitorTitles.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div><strong>Also Ask:</strong>
+                            <ul class="list-disc pl-4 text-xs mt-xs text-secondary space-y-1">
+                                ${result.peopleAlsoAsk.map(q => `<li>${q}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } catch (err) {
+                    alert("Gemini Error: " + err.message);
+                } finally {
+                    btn.innerHTML = prev;
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        async function loadCategories() {
+            const { data } = await getCategories();
+            if (data && data.length > 0) {
+                const select = document.getElementById('post-category');
+                data.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.name;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function initEditor() {
+            editor = new Editor({
+                element: document.querySelector('#tiptap-editor'),
+                extensions: [
+                    StarterKit,
+                    Underline,
+                    Link.configure({ openOnClick: false, linkOnPaste: true }),
+                    Image.configure({ inline: false, allowBase64: true }),
+                    Placeholder.configure({
+                        placeholder: 'Write your story here...',
+                    }),
+                ],
+                content: '',
+                onUpdate({ editor }) {
+                    // Update toolbar active states
+                    updateToolbarState(editor);
+                    updateStats(editor);
+                    triggerAutosave();
+                },
+                onSelectionUpdate({ editor }) {
+                    updateToolbarState(editor);
+                }
+            });
+
+            // Bind Toolbar actions
+            document.querySelectorAll('.toolbar-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const action = btn.dataset.action;
+
+                    if (action === 'bold') editor.chain().focus().toggleBold().run();
+                    if (action === 'italic') editor.chain().focus().toggleItalic().run();
+                    if (action === 'underline') editor.chain().focus().toggleUnderline().run();
+                    if (action === 'strike') editor.chain().focus().toggleStrike().run();
+                    if (action === 'h1') editor.chain().focus().toggleHeading({ level: 1 }).run();
+                    if (action === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+                    if (action === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
+                    if (action === 'bulletList') editor.chain().focus().toggleBulletList().run();
+                    if (action === 'orderedList') editor.chain().focus().toggleOrderedList().run();
+                    if (action === 'blockquote') editor.chain().focus().toggleBlockquote().run();
+                    if (action === 'link') {
+                        const prev = editor.getAttributes('link').href;
+                        if (prev) {
+                            editor.chain().focus().unsetLink().run();
+                        } else {
+                            document.getElementById('link-modal').style.display = 'flex';
+                            document.getElementById('link-external-input').focus();
+                        }
+                    }
+                    if (action === 'image') {
+                        currentUnsplashTarget = 'editor';
+                        if (window.openUnsplashModal) window.openUnsplashModal();
+                    }
+                    if (action === 'codeBlock') editor.chain().focus().toggleCodeBlock().run();
+                    if (action === 'horizontalRule') editor.chain().focus().setHorizontalRule().run();
+                    if (action === 'undo') editor.chain().focus().undo().run();
+                    if (action === 'redo') editor.chain().focus().redo().run();
+                });
+            });
+        }
+
+        function updateToolbarState(editor) {
+            document.querySelectorAll('.toolbar-btn').forEach(btn => {
+                const action = btn.dataset.action;
+                let isActive = false;
+
+                if (action === 'bold') isActive = editor.isActive('bold');
+                if (action === 'italic') isActive = editor.isActive('italic');
+                if (action === 'underline') isActive = editor.isActive('underline');
+                if (action === 'strike') isActive = editor.isActive('strike');
+                if (action === 'h1') isActive = editor.isActive('heading', { level: 1 });
+                if (action === 'h2') isActive = editor.isActive('heading', { level: 2 });
+                if (action === 'h3') isActive = editor.isActive('heading', { level: 3 });
+                if (action === 'bulletList') isActive = editor.isActive('bulletList');
+                if (action === 'orderedList') isActive = editor.isActive('orderedList');
+                if (action === 'blockquote') isActive = editor.isActive('blockquote');
+                if (action === 'link') isActive = editor.isActive('link');
+                if (action === 'codeBlock') isActive = editor.isActive('codeBlock');
+
+                if (isActive) btn.classList.add('is-active');
+                else btn.classList.remove('is-active');
+            });
+        }
+
+        // Generic slugify function
+        function slugify(text) {
+            return text.toString().toLowerCase()
+                .replace(/\s+/g, '-')           // Replace spaces with -
+                .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+                .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+                .replace(/^-+/, '')             // Trim - from start of text
+                .replace(/-+$/, '');            // Trim - from end of text
+        }
+
+        function updateStats(editor) {
+            const text = editor.getText();
+            const words = text.split(/\s+/).filter(w => w.trim().length > 0).length;
+            const readingTime = Math.max(1, Math.ceil(words / 200));
+            
+            document.getElementById('word-count').textContent = `${words} words`;
+            document.getElementById('read-time').textContent = `${readingTime} min read`;
+            
+            if (words > 10) {
+                const readability = checkReadability(editor.getHTML());
+                const badge = document.getElementById('readability-score');
+                badge.textContent = readability;
+                badge.className = 'badge ' + (readability === 'Easy' ? 'badge-green' : (readability === 'Medium' ? 'badge-orange' : 'badge-red'));
+            }
+
+            // SEO Updates
+            const seoTitle = document.getElementById('seo-title');
+            const seoDesc = document.getElementById('seo-desc');
+            const seoKeyword = document.getElementById('seo-keyword');
+            
+            const titleValue = seoTitle.value || document.getElementById('post-title').value || '';
+            document.getElementById('seo-title-count').textContent = titleValue.length;
+            if (titleValue.length > 60) seoTitle.style.borderColor = 'var(--text-red)';
+            else seoTitle.style.borderColor = '';
+
+            document.getElementById('seo-desc-count').textContent = seoDesc.value.length;
+            if (seoDesc.value.length > 160) seoDesc.style.borderColor = 'var(--text-red)';
+            else seoDesc.style.borderColor = '';
+
+            const contentHtml = editor.getHTML();
+            const postObj = {
+                title: titleValue,
+                seo_title: titleValue,
+                seo_description: seoDesc.value,
+                focus_keyword: seoKeyword.value
+            };
+            
+            const score = calculateSEOScore(postObj, contentHtml);
+            renderSEOChecklist(postObj, contentHtml, score);
+        }
+
+        function renderSEOChecklist(post, html, score) {
+            const kw = (post.focus_keyword || '').toLowerCase();
+            const text = html.replace(/<[^>]*>?/gm, '').toLowerCase();
+            const words = text.split(/\s+/).filter(w => w.length > 0).length;
+            
+            const checks = [
+                { label: 'Keyword in title', passed: kw && post.title.toLowerCase().includes(kw) },
+                { label: 'Keyword in meta description', passed: kw && post.seo_description && post.seo_description.toLowerCase().includes(kw) },
+                { label: 'Keyword in first paragraph', passed: kw && text.substring(0, 500).includes(kw) },
+                { label: 'Meta description length (120-160)', passed: post.seo_description.length >= 120 && post.seo_description.length <= 160 },
+                { label: 'Meta title length (30-60)', passed: post.title.length >= 30 && post.title.length <= 60 },
+                { label: 'H2 heading presence', passed: html.includes('<h2') },
+                { label: 'Internal link presence', passed: html.includes('href="/') },
+                { label: 'Image presence', passed: html.includes('<img') },
+                { label: 'Word count > 1000', passed: words > 1000 }
+            ];
+
+            const container = document.getElementById('seo-checklist');
+            if (container) {
+                container.innerHTML = checks.map(c => `
+                    <div class="flex items-center gap-sm" style="margin-bottom: 0.25rem;">
+                        <i class="fas ${c.passed ? 'fa-check text-green' : 'fa-times'} text-xs" style="${!c.passed ? 'color: var(--text-orange);' : ''}"></i>
+                        <span class="${c.passed ? 'text-primary' : 'text-secondary'}">${c.label}</span>
+                    </div>
+                `).join('');
+            }
+
+            const badge = document.getElementById('seo-score-badge');
+            if (badge) {
+                badge.textContent = `${score}/100 ${score > 80 ? 'Great' : (score > 50 ? 'Good' : 'Needs Work')}`;
+                badge.style.background = score > 80 ? '#10b981' : (score > 50 ? '#f59e0b' : '#ef4444');
+                badge.style.color = '#fff';
+            }
+        }
+
+        async function loadPostData(id) {
+            const { data } = await getPostById(id);
+            if (data) {
+                document.getElementById('post-title').value = data.title || '';
+                document.getElementById('post-slug').value = data.slug || '';
+                document.getElementById('post-category').value = data.category_id || '';
+                document.getElementById('cover-image').value = data.cover_image || '';
+                document.getElementById('post-excerpt').value = data.excerpt || '';
+                document.getElementById('is-featured').checked = data.featured || false;
+                document.getElementById('is-premium').checked = data.premium || false;
+                const statusEl = document.getElementById('post-status');
+                if (statusEl) statusEl.value = data.status || 'draft';
+                if (data.status === 'scheduled' && data.published_at) {
+                    const scheduledWrap = document.getElementById('scheduled-date-wrap');
+                    if (scheduledWrap) scheduledWrap.style.display = 'block';
+                    document.getElementById('post-scheduled-at').value = data.published_at.slice(0, 16);
+                }
+                document.getElementById('seo-keyword').value = data.focus_keyword || '';
+                document.getElementById('seo-title').value = data.seo_title || '';
+                document.getElementById('seo-desc').value = data.seo_description || '';
+                document.getElementById('seo-og-image').value = data.og_image || '';
+                document.getElementById('seo-canonical').value = data.canonical_url || '';
+                
+                if (data.content) {
+                    editor.commands.setContent(data.content);
+                }
+                updateStats(editor);
+            }
+        }
+
+        function renderRevisions() {
+            if (!currentPostId) return;
+            const revKey = 'revisions_' + currentPostId;
+            let revisions = [];
+            try {
+                revisions = JSON.parse(localStorage.getItem(revKey)) || [];
+            } catch(e){}
+            
+            const container = document.getElementById('revisions-list');
+            if (revisions.length === 0) {
+                container.innerHTML = '<div class="text-xs text-secondary italic">No revisions saved yet.</div>';
+                return;
+            }
+            // Sort newest first
+            revisions.sort((a,b) => b.timestamp - a.timestamp);
+            
+            container.innerHTML = revisions.map((rev, idx) => {
+                const date = new Date(rev.timestamp);
+                return `
+                    <div class="flex items-center justify-between p-2 rounded border border-transparent hover:border-white/10 hover:bg-white/5 cursor-pointer group" onclick="window.restoreRevision(${rev.timestamp})">
+                        <div class="flex-col">
+                            <span class="text-sm font-semibold">${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span class="text-xs text-secondary mt-xs">${date.toLocaleDateString()}</span>
+                        </div>
+                        <button class="btn btn-outline text-xs opacity-0 group-hover:opacity-100 transition" title="Restore"><i class="fas fa-history"></i></button>
+                    </div>
+                `;
+            }).join('');
+            
+            window.restoreRevision = (ts) => {
+                const target = revisions.find(r => r.timestamp === ts);
+                if (target && confirm("Are you sure you want to restore this revision? Current unsaved changes will be lost.")) {
+                    editor.commands.setContent(target.content);
+                    document.getElementById('post-title').value = target.title;
+                    alert("Revision restored!");
+                }
+            };
+        }
+
+        import { getPosts } from '/js/api.js';
+        
+        function setupLinkPicker() {
+            const modal = document.getElementById('link-modal');
+            
+            document.getElementById('link-close').addEventListener('click', () => modal.style.display = 'none');
+            
+            // External link logic
+            const addExternal = () => {
+                let url = document.getElementById('link-external-input').value.trim();
+                if (url) {
+                    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+                        url = 'https://' + url;
+                    }
+                    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                    modal.style.display = 'none';
+                    document.getElementById('link-external-input').value = '';
+                }
+            };
+            document.getElementById('link-external-btn').addEventListener('click', addExternal);
+            document.getElementById('link-external-input').addEventListener('keydown', e => { if (e.key === 'Enter') addExternal(); });
+
+            // Internal link logic
+            const searchInput = document.getElementById('link-internal-search');
+            let debounceTimer;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                const query = e.target.value.trim();
+                const resultsContainer = document.getElementById('link-internal-results');
+                
+                if (!query) {
+                    resultsContainer.innerHTML = '';
+                    return;
+                }
+
+                debounceTimer = setTimeout(async () => {
+                    resultsContainer.innerHTML = '<div class="text-sm p-2 text-secondary">Searching...</div>';
+                    const { data } = await getPosts({ search: query, limit: 10 });
+                    if (!data || data.length === 0) {
+                        resultsContainer.innerHTML = '<div class="text-sm p-2 text-secondary">No matching posts found.</div>';
+                    } else {
+                        resultsContainer.innerHTML = data.map(post => `
+                            <div class="hover:bg-white/5 p-2 rounded cursor-pointer transition flex flex-col gap-1 border border-transparent hover:border-white/10" 
+                                onclick="window.selectInternalLink('/public/article.html?slug=${post.slug}')">
+                                <span class="text-sm font-semibold">${post.title}</span>
+                                <span class="text-xs text-secondary hidden sm:block">${post.excerpt || ''}</span>
+                            </div>
+                        `).join('');
+                    }
+                }, 300);
+            });
+
+            window.selectInternalLink = (url) => {
+                editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                modal.style.display = 'none';
+                searchInput.value = '';
+                document.getElementById('link-internal-results').innerHTML = '';
+            };
+            
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && modal.style.display === 'flex') modal.style.display = 'none';
+            });
+        }
+
+        let autosaveTimer;
+        function triggerAutosave() {
+            clearTimeout(autosaveTimer);
+            document.getElementById('save-status').textContent = "Saving...";
+            autosaveTimer = setTimeout(() => {
+                savePost(false, true);
+            }, 30000);
+        }
+
+        async function savePost(isAutosave = false) {
+            const title = document.getElementById('post-title').value;
+            if (!title && !isAutosave) {
+                alert("Please enter a title.");
+                return;
+            } else if (!title && isAutosave) {
+                document.getElementById('save-status').textContent = "Draft Saved";
+                return;
+            }
+
+            const contentHtml = editor.getHTML();
+            const textContent = editor.getText();
+            const wordCount = textContent.split(/\s+/).length;
+            const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+            const status = document.getElementById('post-status')?.value || 'draft';
+            const scheduledAt = document.getElementById('post-scheduled-at')?.value || null;
+            const slugInput = document.getElementById('post-slug')?.value.trim();
+
+            const postData = {
+                title,
+                slug: slugInput || slugify(title),
+                content: contentHtml,
+                excerpt: document.getElementById('post-excerpt').value,
+                cover_image: document.getElementById('cover-image').value,
+                category_id: document.getElementById('post-category').value || null,
+                author_id: currentUser.id,
+                status,
+                premium: document.getElementById('is-premium')?.checked || false,
+                featured: document.getElementById('is-featured').checked,
+                seo_title: document.getElementById('seo-title').value || title,
+                seo_description: document.getElementById('seo-desc').value,
+                focus_keyword: document.getElementById('seo-keyword').value,
+                og_image: document.getElementById('seo-og-image').value,
+                canonical_url: document.getElementById('seo-canonical').value,
+                reading_time: readingTime,
+                published_at: status === 'published' ? new Date().toISOString() : (status === 'scheduled' ? scheduledAt : null)
+            };
+
+            const statusText = document.getElementById('save-status');
+            statusText.textContent = "Saving...";
+
+            let resultError = null;
+
+            if (currentPostId) {
+                // Update existing
+                const { error } = await updatePost(currentPostId, postData);
+                resultError = error;
+                
+                // Save revision locally
+                if (!error) {
+                    const revKey = 'revisions_' + currentPostId;
+                    let revisions = [];
+                    try { revisions = JSON.parse(localStorage.getItem(revKey)) || []; } catch(e){}
+                    revisions.push({ timestamp: Date.now(), title, content: contentHtml });
+                    if (revisions.length > 10) revisions.shift(); // keep last 10
+                    localStorage.setItem(revKey, JSON.stringify(revisions));
+                    renderRevisions();
+                }
+            } else {
+                // Create new
+                const { data, error } = await createPost(postData);
+                resultError = error;
+                if (data) {
+                    currentPostId = data.id;
+                    window.history.replaceState({}, '', `/dashboard/editor.html?id=${data.id}`);
+                }
+            }
+
+            if (resultError) {
+                statusText.textContent = "Error saving";
+                if (!isAutosave) alert("Failed to save post: " + resultError.message);
+                console.error(resultError);
+            } else {
+                statusText.textContent = publish ? "Published!" : (isAutosave ? "Autosaved" : "Draft Saved!");
+                if (publish && !isAutosave) {
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/index.html';
+                    }, 1000);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

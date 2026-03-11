@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Posts - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item active"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="#" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="#" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="#" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left"></div>
+            <div class="topbar-right">
+                <button class="btn btn-primary text-sm" onclick="window.location.href='/dashboard/editor.html'"><i
+                        class="fas fa-plus"></i> New Post</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header" style="margin-bottom: 1rem;">
+                <div>
+                    <h1 class="page-title">Manage Posts</h1>
+                    <p class="text-secondary">View, edit, and organize all your blog articles.</p>
+                </div>
+            </div>
+
+            <!-- Bulk Actions Toolbar -->
+            <div id="bulk-actions" class="panel" style="display: none; padding: 1rem; margin-bottom: 1.5rem; flex-direction: row; gap: 1rem; align-items: center;">
+                <span class="text-sm font-semibold"><span id="selected-count">0</span> selected</span>
+                <button class="btn btn-outline text-sm" id="btn-bulk-publish"><i class="fas fa-check"></i> Publish Selected</button>
+                <button class="btn btn-outline text-sm text-red" id="btn-bulk-draft"><i class="fas fa-times"></i> Draft Selected</button>
+                <button class="btn btn-outline text-sm text-red" id="btn-bulk-delete" style="border-color: var(--accent-red); margin-left: auto;"><i class="fas fa-trash"></i> Delete Selected</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+
+                    <div style="flex: 1; min-width: 200px; position: relative;">
+                        <i class="fas fa-search text-secondary"
+                            style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                        <input type="text" id="search-input" class="form-control text-sm" placeholder="Search titles..."
+                            style="padding-left: 2.5rem; margin-bottom: 0;">
+                    </div>
+
+                    <select id="filter-status" class="form-control text-sm" style="width: auto; margin-bottom: 0;">
+                        <option value="all">All Statuses</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Drafts</option>
+                        <option value="scheduled">Scheduled</option>
+                    </select>
+
+                    <select id="filter-category" class="form-control text-sm" style="width: auto; margin-bottom: 0;">
+                        <option value="all">All Categories</option>
+                        <!-- Loaded via JS -->
+                    </select>
+                </div>
+
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="posts-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="select-all"></th>
+                                <th class="cursor-pointer sortable" data-sort="title">Title <i class="fas fa-sort text-secondary text-xs"></i></th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th class="cursor-pointer sortable" data-sort="date">Date <i class="fas fa-sort text-secondary text-xs"></i></th>
+                                <th class="cursor-pointer sortable" data-sort="views">Views <i class="fas fa-sort text-secondary text-xs"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary">Loading posts...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel-body flex justify-between items-center"
+                    style="border-top: 1px solid var(--border-color);">
+                    <div class="text-sm text-secondary">Showing <span id="post-count">0</span> posts</div>
+                    <div class="flex gap-sm">
+                        <button class="btn btn-outline text-sm" disabled>Previous</button>
+                        <button class="btn btn-outline text-sm" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getAllPosts, getCategories, deletePost, updatePost, createPost } from '/js/api.js';
+        import { formatDate } from '/js/utils.js';
+
+        let allPosts = [];
+        let selectedIds = new Set();
+        let sortCol = 'date';
+        let sortDesc = true;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            await loadFilters();
+            await loadPosts();
+
+            // Bind filters
+            document.getElementById('search-input').addEventListener('input', renderTable);
+            document.getElementById('filter-status').addEventListener('change', renderTable);
+            document.getElementById('filter-category').addEventListener('change', renderTable);
+            
+            // Bind Sort
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.addEventListener('click', (e) => {
+                    const col = e.currentTarget.dataset.sort;
+                    if (sortCol === col) sortDesc = !sortDesc;
+                    else { sortCol = col; sortDesc = true; }
+                    renderTable();
+                });
+            });
+
+            // Bind Select All
+            document.getElementById('select-all').addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = checked;
+                    if (checked) selectedIds.add(cb.value);
+                    else selectedIds.delete(cb.value);
+                });
+                updateBulkActions();
+            });
+
+            // Bind Bulk Actions
+            document.getElementById('btn-bulk-publish').addEventListener('click', () => bulkUpdateStatus('published'));
+            document.getElementById('btn-bulk-draft').addEventListener('click', () => bulkUpdateStatus('draft'));
+            document.getElementById('btn-bulk-delete').addEventListener('click', bulkDelete);
+        });
+
+        async function loadFilters() {
+            const { data } = await getCategories();
+            if (data) {
+                const select = document.getElementById('filter-category');
+                data.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.name;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        async function loadPosts() {
+            // getAllPosts includes drafts + scheduled (admin view)
+            const { data } = await getAllPosts();
+            if (data) {
+                allPosts = data;
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-status').value;
+            const categoryFilter = document.getElementById('filter-category').value;
+
+            // Filter logic
+            const filtered = allPosts.filter(post => {
+                const matchSearch = (post.title || '').toLowerCase().includes(searchTerm);
+
+                let matchStatus = true;
+                if (statusFilter !== 'all') matchStatus = (post.status || 'draft') === statusFilter;
+
+                let matchCat = true;
+                if (categoryFilter !== 'all') matchCat = post.category_id === categoryFilter;
+
+                return matchSearch && matchStatus && matchCat;
+            });
+
+            // Sort logic
+            filtered.sort((a,b) => {
+                let valA, valB;
+                if (sortCol === 'title') { valA = a.title.toLowerCase(); valB = b.title.toLowerCase(); }
+                else if (sortCol === 'views') { valA = a.views || 0; valB = b.views || 0; }
+                else { valA = new Date(a.created_at).getTime(); valB = new Date(b.created_at).getTime(); }
+                
+                if (valA < valB) return sortDesc ? 1 : -1;
+                if (valA > valB) return sortDesc ? -1 : 1;
+                return 0;
+            });
+
+            document.getElementById('post-count').textContent = filtered.length;
+
+            const table = document.getElementById('posts-table').querySelector('tbody');
+
+            if (filtered.length === 0) {
+                table.innerHTML = `<tr><td colspan="7" class="text-center text-secondary">No posts found matching criteria.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = filtered.map(post => {
+                const status = post.status || (post.published ? 'published' : 'draft');
+                const badgeClass = status === 'published' ? 'status-published' : status === 'scheduled' ? 'status-scheduled' : 'status-draft';
+                const badgeLabel = status.charAt(0).toUpperCase() + status.slice(1);
+                return `
+                <tr>
+                    <td><input type="checkbox" class="row-checkbox" value="${post.id}" ${selectedIds.has(post.id) ? 'checked' : ''}></td>
+                    <td class="font-medium" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${post.title}
+                        ${post.featured ? '<i class="fas fa-star text-orange" style="margin-left: 0.5rem; font-size: 0.75rem;" title="Featured"></i>' : ''}
+                        ${post.premium ? '<i class="fas fa-crown text-orange" style="margin-left: 0.25rem; font-size: 0.75rem;" title="Premium"></i>' : ''}
+                    </td>
+                    <td class="text-secondary text-sm">${post.categories?.name || 'None'}</td>
+                    <td>
+                        <span class="status-badge ${badgeClass}">${badgeLabel}</span>
+                    </td>
+                    <td class="text-secondary text-sm">${formatDate(post.created_at)}</td>
+                    <td class="text-secondary text-sm">${post.views || 0}</td>
+                    <td>
+                        <div class="flex gap-sm">
+                            <button class="action-btn" title="Edit" onclick="window.location.href='/dashboard/editor.html?id=${post.id}'"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn duplicate-btn" title="Duplicate" data-id="${post.id}"><i class="fas fa-copy"></i></button>
+                            <button class="action-btn delete" title="Delete" data-id="${post.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Bind check events
+            table.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    if (e.target.checked) selectedIds.add(e.target.value);
+                    else selectedIds.delete(e.target.value);
+                    updateBulkActions();
+                });
+            });
+
+            // Bind Delete events
+            table.querySelectorAll('.action-btn.delete').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    if (confirm("Are you sure you want to permanently delete this post?")) {
+                        const { error } = await deletePost(id);
+                        if (!error) {
+                            allPosts = allPosts.filter(p => p.id !== id);
+                            selectedIds.delete(id);
+                            renderTable();
+                            updateBulkActions();
+                        } else {
+                            alert("Failed to delete post.");
+                        }
+                    }
+                });
+            });
+            
+            // Bind Duplicate events
+            table.querySelectorAll('.duplicate-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    await duplicatePost(id);
+                });
+            });
+
+            updateBulkActions();
+        }
+
+        async function duplicatePost(id) {
+            const original = allPosts.find(p => p.id === id);
+            if (!original) return;
+            const copy = {
+                title: `${original.title} (Copy)`,
+                slug: `${original.slug}-copy-${Date.now()}`,
+                content: original.content,
+                excerpt: original.excerpt,
+                cover_image: original.cover_image,
+                category_id: original.category_id,
+                author_id: original.author_id,
+                status: 'draft',
+                featured: false,
+                premium: original.premium || false,
+                seo_title: original.seo_title,
+                seo_description: original.seo_description,
+                focus_keyword: original.focus_keyword,
+                reading_time: original.reading_time
+            };
+            const { data, error } = await createPost(copy);
+            if (!error && data) {
+                allPosts.unshift(data);
+                renderTable();
+            } else {
+                alert('Failed to duplicate post.');
+            }
+        }
+
+        function updateBulkActions() {
+            const bulkPanel = document.getElementById('bulk-actions');
+            const countSpan = document.getElementById('selected-count');
+            const selectAll = document.getElementById('select-all');
+            
+            if (selectedIds.size > 0) {
+                bulkPanel.style.display = 'flex';
+                countSpan.textContent = selectedIds.size;
+            } else {
+                bulkPanel.style.display = 'none';
+            }
+            
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            if (checkboxes.length > 0 && selectedIds.size === checkboxes.length) {
+                selectAll.checked = true;
+            } else {
+                selectAll.checked = false;
+            }
+        }
+        
+        async function bulkUpdateStatus(status) {
+            if (selectedIds.size === 0) return;
+            const ids = Array.from(selectedIds);
+            const label = status === 'published' ? 'Publish' : 'Set to Draft';
+            if (!confirm(`${label} ${ids.length} selected posts?`)) return;
+            for (let id of ids) {
+                await updatePost(id, { status });
+                const post = allPosts.find(p => p.id === id);
+                if (post) post.status = status;
+            }
+            selectedIds.clear();
+            renderTable();
+        }
+        
+        async function bulkDelete() {
+            if (selectedIds.size === 0) return;
+            if (confirm(`Are you sure you want to permanently delete ${selectedIds.size} posts?`)) {
+                const ids = Array.from(selectedIds);
+                for (let id of ids) {
+                    await deletePost(id);
+                    allPosts = allPosts.filter(p => p.id !== id);
+                }
+                selectedIds.clear();
+                renderTable();
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article - Ace Tech Insight</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    },
+                    typography: { DEFAULT: { css: { color: '#d1d5db', a: { color: '#f68b1e' }, h2: { color: '#fff' }, h3: { color: '#fff' } } } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0c0a; color: #ffffff; }
+
+        /* Hero */
+        .article-hero {
+            position: relative;
+            min-height: 500px;
+            display: flex;
+            align-items: flex-end;
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+        }
+        .article-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(15,12,10,1) 0%, rgba(15,12,10,0.5) 50%, rgba(15,12,10,0.15) 100%);
+        }
+        .article-hero-content { position: relative; z-index: 10; width: 100%; }
+
+        /* Rich text content */
+        .prose-ace { font-size: 1.125rem; line-height: 1.85; color: #c4c4c8; }
+        .prose-ace p { margin-bottom: 1.5rem; }
+        .prose-ace h2 { font-size: 1.75rem; font-weight: 700; color: #fff; margin-top: 2.5rem; margin-bottom: 1rem; }
+        .prose-ace h3 { font-size: 1.35rem; font-weight: 700; color: #fff; margin-top: 2rem; margin-bottom: 0.75rem; }
+        .prose-ace blockquote {
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+            border-left: 4px solid #f68b1e;
+            background: rgba(246,139,30,0.07);
+            border-radius: 0 12px 12px 0;
+            font-size: 1.25rem;
+            font-style: italic;
+            color: #f68b1e;
+            line-height: 1.6;
+        }
+        .prose-ace img { width: 100%; border-radius: 12px; margin: 2rem 0; border: 1px solid rgba(255,255,255,0.08); }
+        .prose-ace ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; }
+        .prose-ace li { margin-bottom: 0.5rem; }
+        .prose-ace a { color: #f68b1e; text-decoration: underline; }
+        .prose-ace code { background: rgba(255,255,255,0.07); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .prose-ace pre { background: #1a1612; padding: 1.5rem; border-radius: 12px; overflow-x: auto; margin-bottom: 1.5rem; }
+
+        /* Progress bar */
+        #reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f68b1e, #ff5500);
+            z-index: 100;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Tag pill */
+        .tag-pill { display: inline-block; padding: 0.25rem 0.875rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; font-size: 0.8rem; color: #a09c98; transition: all 0.2s; cursor: pointer; }
+        .tag-pill:hover { border-color: #f68b1e; color: #f68b1e; }
+
+        /* Comment avatar */
+        .comment-avatar { width: 40px; height: 40px; border-radius: 50%; background: #2a2420; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #a09c98; flex-shrink: 0; }
+
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <!-- Reading Progress Bar -->
+    <div id="reading-progress"></div>
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-50 bg-ace-dark/95 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-8">
+                <a href="/public/index.html" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight hidden sm:block">Ace Tech Insight</span>
+                </a>
+                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-ace-muted">
+                    <a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">AI</a>
+                    <a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a>
+                    <a href="/public/category.html?slug=future-tech" class="hover:text-white transition-colors">Future Tech</a>
+                    <a href="/public/category.html?slug=software" class="hover:text-white transition-colors">Software</a>
+                    <a href="/public/category.html?slug=reviews" class="hover:text-white transition-colors">Reviews</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative hidden md:block">
+                    <input id="nav-search" type="text" placeholder="Search..."
+                        class="bg-white/5 border-0 rounded-lg py-1.5 pl-3 pr-9 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none w-44">
+                    <svg class="w-4 h-4 absolute right-2.5 top-2 text-ace-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <a href="/public/index.html" class="bg-ace-accent text-ace-dark px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-ace-accent-hover transition-colors">Subscribe</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ARTICLE HERO -->
+    <div id="article-hero-container">
+        <div class="article-hero" style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80');">
+            <div class="article-hero-content px-4 py-14 max-w-7xl mx-auto">
+                <div class="max-w-3xl">
+                    <span class="inline-block px-3 py-1 bg-ace-accent/20 text-ace-accent text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Future Tech</span>
+                    <h1 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">Beyond Reality: The <span class="text-ace-accent">Metastructure</span> of 2025</h1>
+                    <div class="flex items-center gap-3">
+                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80"
+                            alt="Author" class="w-11 h-11 rounded-full border-2 border-white/20 object-cover">
+                        <div>
+                            <div class="font-semibold text-sm">Marcus Chen</div>
+                            <div class="text-[11px] text-ace-muted">Lead Trend Forecaster · Oct 28, 2025 · <span class="text-ace-accent">8 min read</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BREADCRUMBS -->
+    <div class="max-w-7xl mx-auto px-4 pt-6 pb-2 text-sm text-ace-muted flex items-center gap-2">
+        <a href="/public/index.html" class="hover:text-white transition-colors">Home</a>
+        <span>/</span>
+        <a href="#" id="breadcrumb-category" class="hover:text-white transition-colors capitalize">Future Tech</a>
+        <span>/</span>
+        <span class="text-white truncate max-w-xs" id="breadcrumb-title">Beyond Reality</span>
+    </div>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-10 lg:grid lg:grid-cols-12 lg:gap-12">
+
+        <!-- Article Body -->
+        <article class="lg:col-span-8" id="article-body">
+
+            <!-- Rich text -->
+            <div class="prose-ace" id="post-rich-text">
+                <p>As we cross the threshold into 2025, the boundary between our physical environment and the digital layer has not just blurred—it has completely dissolved. We are entering the era of the Metastructure.</p>
+                <h2>The Convergence of Everything</h2>
+                <p>The digital-physical divide has finally collapsed. Instead of staring at screens or putting on heavy headsets, we now inhabit hybrid spaces. The "Metastructure" represents the overarching framework where digital entities exist ubiquitously alongside physical objects.</p>
+                <blockquote>"The Metastructure isn't a place we visit; it is a fundamental change in how the physical world processes information and human intent." <span style="display:block;font-size:0.9rem;font-style:normal;color:#a09c98;margin-top:0.75rem;">— Marcus Chen, 2025</span></blockquote>
+                <h2>Real-Time Spatial Synchronization</h2>
+                <p>Technological limitations given AR and edge computing infrastructure have largely resolved. With plug and play spatial synchronization, the environment responds instantaneously to logic, action, and touch.</p>
+                <img src="https://images.unsplash.com/photo-1620825937374-87fc7d620992?auto=format&fit=crop&q=80" alt="Future Tech">
+                <p class="text-sm text-ace-muted -mt-6 text-center">Fig 01: The core processor of "Halo" via a unified Matrix Link architecture.</p>
+                <h2>Impact on Urban Design</h2>
+                <p>Architects are now designing buildings with "digital hard flats"—surfaces specifically intended to host persistent digital elements. The facade of a building may look like concrete off-mode, but actively project vibrant, dynamic, and context-aware elements when viewed through AR glasses.</p>
+            </div>
+
+            <!-- Share + Tags -->
+            <div class="mt-12 pt-8 border-t border-white/10">
+                <div class="flex flex-wrap items-center gap-4 mb-6">
+                    <span class="text-sm font-semibold uppercase tracking-wider text-ace-muted">Actions:</span>
+                    <button id="btn-like" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-ace-muted hover:bg-pink-500/20 hover:text-pink-400 transition-all border border-transparent">
+                        <i class="far fa-heart"></i> <span id="like-count">0</span>
+                    </button>
+                    <button id="btn-bookmark" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-ace-muted hover:bg-blue-500/20 hover:text-blue-400 transition-all border border-transparent">
+                        <i class="far fa-bookmark"></i> Save
+                    </button>
+                    
+                    <div class="w-px h-6 bg-white/10 mx-2"></div>
+
+                    <span class="text-sm font-semibold uppercase tracking-wider text-ace-muted">Share:</span>
+                    <button onclick="navigator.share ? navigator.share({title: document.title, url: location.href}) : navigator.clipboard.writeText(location.href)"
+                        class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-ace-muted hover:bg-ace-accent hover:text-ace-dark transition-all" title="Share">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                    </button>
+                    <a href="#" onclick="window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(document.title)}`,'_blank')"
+                        class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-ace-muted hover:bg-ace-accent hover:text-ace-dark transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                    </a>
+                </div>
+
+                <div id="post-tags" class="flex flex-wrap gap-2 mb-10">
+                    <a href="#" class="tag-pill">METAVERSE</a>
+                    <a href="#" class="tag-pill">HARDWARE</a>
+                    <a href="#" class="tag-pill">HCI</a>
+                </div>
+            </div>
+
+            <!-- Author Box -->
+            <div id="author-box" class="bg-ace-surface p-6 rounded-2xl border border-white/5 flex gap-5 items-center mb-12">
+                <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80"
+                    alt="Marcus Chen" class="w-16 h-16 rounded-full object-cover border-2 border-white/10 shrink-0">
+                <div>
+                    <h4 class="font-bold mb-1">About Marcus Chen</h4>
+                    <p class="text-sm text-ace-muted leading-relaxed">Marcus is a principal forecaster at Area 12. He specializes in spatial computing psychology and writes about the intersection of human behavior and emerging technology architectures.</p>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div id="comments-section">
+                <h3 class="text-2xl font-bold mb-8" id="comments-heading">Comments</h3>
+
+                <!-- Comment Form -->
+                <form id="comment-form" class="bg-ace-surface p-6 rounded-2xl border border-white/5 mb-10">
+                    <h4 class="font-semibold mb-5">Leave a Reply</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <input type="text" id="comment-name" placeholder="Name *" required
+                            class="bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                        <input type="email" id="comment-email" placeholder="Email *" required
+                            class="bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                    </div>
+                    <textarea id="comment-body" placeholder="Your comment…" rows="4" required
+                        class="w-full bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none resize-y mb-4"></textarea>
+                    <button type="submit" class="bg-ace-accent text-ace-dark px-6 py-3 rounded-lg font-bold hover:bg-ace-accent-hover transition-colors">
+                        Post Comment
+                    </button>
+                </form>
+
+                <!-- Comments List -->
+                <div id="comments-list" class="space-y-6">
+                    <!-- Static fallback comment -->
+                    <div class="flex gap-4">
+                        <div class="comment-avatar">S</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-1">
+                                <span class="font-semibold text-sm">Sarah Jenkins</span>
+                                <span class="text-xs text-ace-muted">Oct 29, 2025</span>
+                            </div>
+                            <p class="text-sm text-ace-muted leading-relaxed">Fascinating read! The concept of "digital hard flats" is exactly what urban planners have been theorizing about. Hardware constraints are breaking down faster than expected.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Sidebar -->
+        <aside class="lg:col-span-4 mt-14 lg:mt-0 space-y-8">
+
+            <!-- Table of Contents -->
+            <div id="toc-container" class="bg-ace-surface p-5 rounded-2xl border border-white/5 space-y-1" style="display:none;">
+                <!-- Populated by generateTOC() -->
+            </div>
+
+            <!-- Related Articles -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5">
+                <h3 class="text-lg font-bold mb-5">Related Articles</h3>
+                <div id="related-list" class="space-y-5">
+                    <div class="group cursor-pointer" onclick="window.location.href='/public/article.html'">
+                        <div class="aspect-video rounded-xl overflow-hidden mb-3">
+                            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80"
+                                alt="Tech" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        </div>
+                        <h4 class="text-sm font-bold leading-snug group-hover:text-ace-accent transition-colors mb-1">Neural Links: The Next Frontier of Direct Interfaces</h4>
+                        <p class="text-[11px] text-ace-muted">Oct 14, 2025 · 9 min read</p>
+                    </div>
+                    <div class="group cursor-pointer" onclick="window.location.href='/public/article.html'">
+                        <div class="aspect-video rounded-xl overflow-hidden mb-3">
+                            <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80"
+                                alt="Earth" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        </div>
+                        <h4 class="text-sm font-bold leading-snug group-hover:text-ace-accent transition-colors mb-1">The Decentralized Internet is Finally Here</h4>
+                        <p class="text-[11px] text-ace-muted">Sep 28, 2025 · 15 min read</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Newsletter -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5 sticky top-20">
+                <div class="w-10 h-10 bg-ace-accent/20 rounded-xl flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-ace-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold mb-2">Ace Daily</h3>
+                <p class="text-ace-muted text-sm mb-5 leading-relaxed">Get the best of Ace Tech Insight, delivered daily at 6 AM.</p>
+                <form id="newsletter-form" class="space-y-3">
+                    <input id="newsletter-email" type="email" placeholder="Your email address"
+                        class="w-full bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                    <button type="submit" class="w-full bg-ace-accent text-ace-dark font-bold py-3 rounded-lg hover:bg-ace-accent-hover transition-colors">
+                        Join +150k readers
+                    </button>
+                </form>
+                <p class="text-[10px] text-center text-ace-muted mt-3">No spam, unsubscribe anytime.</p>
+            </div>
+
+        </aside>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-ace-dark border-t border-white/5 pt-12 pb-8 px-4 mt-8">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-ace-muted gap-4">
+            <a href="/public/index.html" class="flex items-center gap-2 font-bold text-white">
+                <div class="w-7 h-7 bg-ace-accent rounded-full flex items-center justify-center">
+                    <span class="text-ace-dark font-bold leading-none">A</span>
+                </div>
+                Ace Tech Insight
+            </a>
+            <p>© 2025 Ace Tech Media Group. All rights reserved.</p>
+            <div class="flex gap-5">
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="/public/about.html" class="hover:text-white transition-colors">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { getPost, submitComment, getComments, trackView, getPosts, subscribe } from '/js/api.js';
+
+        let currentPostId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Reading progress bar
+            window.addEventListener('scroll', () => {
+                const el = document.getElementById('article-body');
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const total = el.offsetHeight;
+                const scrolled = Math.max(0, -rect.top);
+                const pct = Math.min(100, (scrolled / total) * 100);
+                document.getElementById('reading-progress').style.width = pct + '%';
+
+                // Track read at 80% scroll — fires once per session
+                if (pct >= 80 && currentPostId && !sessionStorage.getItem('read_' + currentPostId)) {
+                    sessionStorage.setItem('read_' + currentPostId, '1');
+                    import('/js/api.js').then(({ trackRead }) => {
+                        if (trackRead) trackRead(currentPostId);
+                    }).catch(() => {});
+                }
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const slug = urlParams.get('slug');
+            if (slug) await loadArticle(slug);
+
+            // Comment form
+            document.getElementById('comment-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                if (!currentPostId) { alert('Cannot comment on demo post.'); return; }
+                const btn = e.target.querySelector('button');
+                btn.textContent = 'Posting…';
+                btn.disabled = true;
+                const { error } = await submitComment({
+                    post_id: currentPostId,
+                    author_name: document.getElementById('comment-name').value,
+                    author_email: document.getElementById('comment-email').value,
+                    content: document.getElementById('comment-body').value
+                });
+                if (error) {
+                    btn.textContent = 'Failed — try again';
+                    btn.disabled = false;
+                } else {
+                    btn.textContent = 'Comment submitted!';
+                    e.target.reset();
+                }
+            });
+
+            // Newsletter
+            document.getElementById('newsletter-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const emailEl = document.getElementById('newsletter-email');
+                const btn = e.target.querySelector('button');
+                btn.textContent = 'Joining…';
+                btn.disabled = true;
+                try {
+                    await subscribe(emailEl.value.trim(), '');
+                    btn.textContent = '✓ You\'re in!';
+                    emailEl.value = '';
+                } catch {
+                    btn.textContent = 'Try again';
+                    btn.disabled = false;
+                }
+            });
+
+            // Search
+            document.getElementById('nav-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    window.location.href = `/public/search.html?q=${encodeURIComponent(e.target.value.trim())}`;
+                }
+            });
+        });
+
+        async function loadArticle(slug) {
+            const { data: post, error } = await getPost(slug);
+            if (error || !post) return; // keep static mockup
+
+            currentPostId = post.id;
+            trackView(post.id);
+            document.title = `${post.title} - Ace Tech Insight`;
+            
+            const img = post.cover_image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80';
+            const desc = post.excerpt || post.title;
+            const url = window.location.href;
+
+            // Generate SEO Meta tags dynamically
+            let metaDesc = document.querySelector('meta[name="description"]');
+            if (!metaDesc) { metaDesc = document.createElement('meta'); metaDesc.name = "description"; document.head.appendChild(metaDesc); }
+            metaDesc.content = desc;
+
+            const ogTags = {
+                'og:title': post.title,
+                'og:description': desc,
+                'og:image': img,
+                'og:url': url,
+                'og:type': 'article'
+            };
+            Object.keys(ogTags).forEach(property => {
+                let tag = document.querySelector(`meta[property="${property}"]`);
+                if (!tag) { tag = document.createElement('meta'); tag.setAttribute('property', property); document.head.appendChild(tag); }
+                tag.content = ogTags[property];
+            });
+
+            // JSON-LD Schema
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": "BlogPosting",
+                "headline": post.title,
+                "image": [img],
+                "datePublished": post.published_at || new Date().toISOString(),
+                "author": [{ "@type": "Person", "name": "Marcus Chen", "url": url }]
+            };
+            let script = document.querySelector('script[type="application/ld+json"]');
+            if (!script) { script = document.createElement('script'); script.type = "application/ld+json"; document.head.appendChild(script); }
+            script.textContent = JSON.stringify(schema);
+            const date = post.published_at ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+            const cat = post.categories?.name || 'Article';
+
+            document.getElementById('article-hero-container').innerHTML = `
+                <div class="article-hero" style="background-image: url('${img}');">
+                    <div class="article-hero-content px-4 py-14 max-w-7xl mx-auto">
+                        <div class="max-w-3xl">
+                            <span class="inline-block px-3 py-1 bg-ace-accent/20 text-ace-accent text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">${cat}</span>
+                            <h1 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">${post.title}</h1>
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-full bg-ace-accent flex items-center justify-center font-bold text-ace-dark text-xl border-2 border-white/20">A</div>
+                                <div>
+                                    <div class="font-semibold text-sm">Author</div>
+                                    <div class="text-[11px] text-ace-muted">${date} · <span class="text-ace-accent">${post.reading_time || 5} min read</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.getElementById('breadcrumb-category').textContent = cat;
+            document.getElementById('breadcrumb-category').href = `/public/category.html?slug=${post.categories?.slug || ''}`;
+            document.getElementById('breadcrumb-title').textContent = post.title;
+            document.getElementById('post-rich-text').innerHTML = post.content || post.excerpt || '<p>No content yet.</p>';
+
+            // Generate Table of Contents from headings
+            generateTOC();
+
+            // Premium blur — show teaser then blur with subscription prompt
+            if (post.premium) {
+                const richText = document.getElementById('post-rich-text');
+                richText.style.maxHeight = '500px';
+                richText.style.overflow = 'hidden';
+                richText.style.maskImage = 'linear-gradient(to bottom, black 60%, transparent 100%)';
+                richText.style.webkitMaskImage = 'linear-gradient(to bottom, black 60%, transparent 100%)';
+                const premiumWall = document.createElement('div');
+                premiumWall.innerHTML = `
+                    <div class="text-center p-10 bg-ace-surface rounded-2xl border border-ace-accent/30 mt-6">
+                        <div class="text-4xl mb-4">🔒</div>
+                        <h3 class="text-2xl font-bold mb-3">Premium Content</h3>
+                        <p class="text-ace-muted mb-6">This article is for Ace Tech Insight premium members. Subscribe to read the full story.</p>
+                        <a href="/public/index.html#newsletter" class="inline-block bg-ace-accent text-ace-dark font-bold px-8 py-3 rounded-xl hover:bg-ace-accent-hover transition-colors">Become a Member</a>
+                    </div>`;
+                richText.after(premiumWall);
+            }
+
+            if (post.post_tags?.length) {
+                document.getElementById('post-tags').innerHTML = post.post_tags.map(t =>
+                    `<a href="/public/search.html?q=${t.tags.slug}" class="tag-pill">${t.tags.name.toUpperCase()}</a>`
+                ).join('');
+            }
+
+            await loadComments(post.id);
+            await loadRelated(cat, post.slug);
+            setupReactions(post.id);
+        }
+
+        function generateTOC() {
+            const tocContainer = document.getElementById('toc-container');
+            if (!tocContainer) return;
+            const headings = document.querySelectorAll('#post-rich-text h2, #post-rich-text h3');
+            if (headings.length === 0) { tocContainer.style.display = 'none'; return; }
+            tocContainer.innerHTML = '<h4 class="text-sm font-bold mb-3 uppercase tracking-wider text-ace-muted">In This Article</h4><nav>';
+            const nav = tocContainer.querySelector('nav');
+            headings.forEach((h, i) => {
+                const id = 'heading-' + i;
+                h.id = id;
+                const link = document.createElement('a');
+                link.href = '#' + id;
+                link.textContent = h.textContent;
+                link.className = h.tagName === 'H2'
+                    ? 'block text-sm text-ace-muted hover:text-ace-accent transition-colors py-1'
+                    : 'block text-xs text-ace-muted/70 hover:text-ace-accent transition-colors py-0.5 pl-3';
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                nav.appendChild(link);
+            });
+            tocContainer.style.display = 'block';
+        }
+
+        function setupReactions(postId) {
+            const btnLike = document.getElementById('btn-like');
+            const likeCount = document.getElementById('like-count');
+            const btnBookmark = document.getElementById('btn-bookmark');
+            
+            const likesKey = `ace_likes`;
+            const bookmarksKey = `ace_bookmarks`;
+            
+            let likesMap = JSON.parse(localStorage.getItem(likesKey) || '{}');
+            let bookmarksSet = new Set(JSON.parse(localStorage.getItem(bookmarksKey) || '[]'));
+            
+            // Mock base count from DB using string hash for demo since we don't have a likes table
+            let baseCount = Math.abs([...postId].reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 150 + 12;
+            let isLiked = !!likesMap[postId];
+            let isBookmarked = bookmarksSet.has(postId);
+            
+            function renderReactions() {
+                likeCount.textContent = baseCount + (isLiked ? 1 : 0);
+                if (isLiked) {
+                    btnLike.classList.add('text-pink-500');
+                    btnLike.classList.remove('text-ace-muted');
+                    btnLike.querySelector('i').classList.replace('far', 'fas');
+                } else {
+                    btnLike.classList.remove('text-pink-500');
+                    btnLike.classList.add('text-ace-muted');
+                    btnLike.querySelector('i').classList.replace('fas', 'far');
+                }
+                
+                if (isBookmarked) {
+                    btnBookmark.classList.add('text-blue-500');
+                    btnBookmark.classList.remove('text-ace-muted');
+                    btnBookmark.innerHTML = `<i class="fas fa-bookmark"></i> Saved`;
+                } else {
+                    btnBookmark.classList.remove('text-blue-500');
+                    btnBookmark.classList.add('text-ace-muted');
+                    btnBookmark.innerHTML = `<i class="far fa-bookmark"></i> Save`;
+                }
+            }
+            
+            btnLike.addEventListener('click', () => {
+                isLiked = !isLiked;
+                if (isLiked) likesMap[postId] = true; else delete likesMap[postId];
+                localStorage.setItem(likesKey, JSON.stringify(likesMap));
+                renderReactions();
+            });
+            
+            btnBookmark.addEventListener('click', () => {
+                isBookmarked = !isBookmarked;
+                if (isBookmarked) bookmarksSet.add(postId); else bookmarksSet.delete(postId);
+                localStorage.setItem(bookmarksKey, JSON.stringify([...bookmarksSet]));
+                renderReactions();
+            });
+            
+            renderReactions();
+        }
+
+        async function loadComments(postId) {
+            const { data: comments } = await getComments(postId);
+            if (!comments) return;
+            document.getElementById('comments-heading').textContent = `Comments (${comments.length})`;
+            if (comments.length === 0) {
+                document.getElementById('comments-list').innerHTML = '<p class="text-ace-muted text-sm">No comments yet. Be the first!</p>';
+                return;
+            }
+            document.getElementById('comments-list').innerHTML = comments.map(c => `
+                <div class="flex gap-4">
+                    <div class="comment-avatar">${c.author_name.charAt(0).toUpperCase()}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="font-semibold text-sm">${c.author_name}</span>
+                            <span class="text-xs text-ace-muted">${new Date(c.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+                        </div>
+                        <p class="text-sm text-ace-muted leading-relaxed">${c.content}</p>
+                    </div>
+                </div>`).join('');
+        }
+
+        async function loadRelated(catName, currentSlug) {
+            try {
+                const { data: posts } = await getPosts({ limit: 3 });
+                const related = (posts || []).filter(p => p.slug !== currentSlug).slice(0, 2);
+                if (!related.length) return;
+                document.getElementById('related-list').innerHTML = related.map(p => `
+                    <div class="group cursor-pointer" onclick="window.location.href='/public/article.html?slug=${p.slug}'">
+                        <div class="aspect-video rounded-xl overflow-hidden mb-3">
+                            <img src="${p.cover_image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80'}"
+                                alt="${p.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy">
+                        </div>
+                        <h4 class="text-sm font-bold leading-snug group-hover:text-ace-accent transition-colors mb-1">${p.title}</h4>
+                        <p class="text-[11px] text-ace-muted">${p.reading_time || 5} min read</p>
+                    </div>`).join('');
+            renderRelated(cat, related);
+            } catch {}
+        }
+    </script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

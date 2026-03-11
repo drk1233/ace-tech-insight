@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Ace Tech Insight</title>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Global & Dashboard CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;"> <!-- Hidden until auth check passes -->
+
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank" title="View Public Site">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item active"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="#" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="#" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="#" class="nav-item">
+                <i class="fas fa-comments"></i> Comments
+                <span class="badge badge-orange" id="sidebar-comment-badge"
+                    style="margin-left:auto; font-size: 0.65rem; padding: 0.1rem 0.4rem;">0</span>
+            </a>
+            <a href="#" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+
+            <div class="nav-section-title">Growth & SEO</div>
+            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="#" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
+            <a href="#" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-outline btn-block text-sm" style="padding: 0.5rem;"><i
+                    class="fas fa-sign-out-alt"></i> Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+
+        <!-- Topbar -->
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <span class="text-secondary"><i class="fas fa-search"></i> <span style="margin-left: 0.5rem;">Press
+                        Ctrl+K to command</span></span>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-primary text-sm" onclick="window.location.href='/dashboard/editor.html'"><i
+                        class="fas fa-plus"></i> New Post</button>
+                <i class="far fa-bell text-secondary cursor-pointer hover:text-white transition"></i>
+                <div class="user-profile">
+                    <div class="user-avatar" id="user-initial">A</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="dashboard-content">
+
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Dashboard Overview</h1>
+                    <p class="text-secondary">Welcome back. Here's what's happening today.</p>
+                </div>
+                <div class="flex gap-sm">
+                    <button class="btn btn-outline text-sm"><i class="fas fa-download"></i> Export Report</button>
+                </div>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Published Posts <i class="fas fa-file-alt"></i></div>
+                    <div class="stat-value" id="stat-posts">0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 12% from last month</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Page Views <i class="far fa-eye"></i></div>
+                    <div class="stat-value" id="stat-views">0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 8.4% from last month</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Reads <i class="fas fa-book-open"></i></div>
+                    <div class="stat-value" id="stat-reads">0</div>
+                    <div class="stat-change negative"><i class="fas fa-arrow-down"></i> 2.1% from last month</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Active Subscribers <i class="fas fa-users"></i></div>
+                    <div class="stat-value" id="stat-subscribers">0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 43 new this week</div>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
+
+                <!-- Left Column -->
+                <div>
+                    <!-- Recent Posts Panel -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Recent Posts</h2>
+                            <a href="#" class="text-orange text-sm hover:underline">View All</a>
+                        </div>
+                        <div class="data-table-wrapper">
+                            <table class="data-table" id="recent-posts-table">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Views</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-secondary">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pending Comments -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Needs Attention: Comments <span class="badge badge-orange"
+                                    id="pending-comments-count">0</span></h2>
+                            <a href="/dashboard/comments.html" class="text-orange text-sm hover:underline">Manage All</a>
+                        </div>
+                        <div class="panel-body flex-col gap-md" id="recent-comments-list">
+                            <div class="text-secondary text-sm">Loading pending comments...</div>
+                        </div>
+                    </div>
+
+                    <!-- Top 3 Posts -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Top Posts (All Time)</h2>
+                            <a href="/dashboard/analytics.html" class="text-orange text-sm hover:underline">View Analytics</a>
+                        </div>
+                        <div class="panel-body flex-col gap-md" id="top-posts-list">
+                            <div class="text-secondary text-sm">Loading top posts...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div>
+                    <!-- Quick Actions -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Quick Actions</h2>
+                        </div>
+                        <div class="panel-body flex-col gap-sm">
+                            <button class="btn btn-outline btn-block text-left flex justify-between items-center"
+                                onclick="window.location.href='/dashboard/editor.html'">
+                                <span><i class="fas fa-pen-nib text-orange" style="width: 20px;"></i> Draft a new
+                                    post</span>
+                                <i class="fas fa-chevron-right text-xs text-secondary"></i>
+                            </button>
+                            <button class="btn btn-outline btn-block text-left flex justify-between items-center"
+                                onclick="window.location.href='/dashboard/analytics.html'">
+                                <span><i class="fas fa-chart-line text-orange" style="width: 20px;"></i> View
+                                    Analytics</span>
+                                <i class="fas fa-chevron-right text-xs text-secondary"></i>
+                            </button>
+                            <button class="btn btn-outline btn-block text-left flex justify-between items-center"
+                                onclick="window.location.href='/dashboard/keywords.html'">
+                                <span><i class="fas fa-key text-orange" style="width: 20px;"></i> Check
+                                    Keywords</span>
+                                <i class="fas fa-chevron-right text-xs text-secondary"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Keyword Breakout Alerts -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Keyword Breakouts</h2>
+                        </div>
+                        <div class="panel-body">
+                            <div class="flex-col gap-sm" id="keyword-breakouts-list">
+                                <div class="text-secondary text-sm">Loading keyword alerts...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Calendar -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Upcoming Schedule</h2>
+                        </div>
+                        <div class="panel-body" id="upcoming-calendar-list">
+                            <div class="text-secondary text-sm">Loading calendar...</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- App Logic -->
+    <script type="module">
+        import { requireAuth, logout, getUser } from '/js/auth.js';
+        import { getPosts, getComments, getDashboardStats, getTopPosts, getKeywords, getCalendarEntries } from '/js/api.js';
+        import { formatDate } from '/js/utils.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Protect Route
+            const session = await requireAuth();
+            if (!session) return; // requireAuth handles redirection
+
+            // Show page once authenticated
+            document.body.style.display = 'flex';
+
+            // 2. Set User Initial
+            try {
+                const { user } = await getUser();
+                if (user && user.email) {
+                    document.getElementById('user-initial').textContent = user.email.charAt(0).toUpperCase();
+                }
+            } catch (e) { }
+
+            // 3. Logout handler
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                await logout();
+                window.location.href = '/dashboard/login.html';
+            });
+
+            // 4. Fetch Dashboard Data
+            loadDashboardData();
+        });
+
+        async function loadDashboardData() {
+            // Fetch Dashboard Stats (Posts, Views, Reads, Subscribers)
+            const stats = await getDashboardStats();
+            if (!stats.error) {
+                document.getElementById('stat-posts').textContent = stats.posts;
+                document.getElementById('stat-subscribers').textContent = stats.subscribers;
+                document.getElementById('stat-views').textContent = stats.views;
+                document.getElementById('stat-reads').textContent = stats.reads;
+            }
+
+            // Fetch Recent Posts
+            const { data: posts } = await getPosts({ limit: 5 });
+            if (posts) {
+
+                const table = document.getElementById('recent-posts-table').querySelector('tbody');
+                if (posts.length === 0) {
+                    table.innerHTML = `<tr><td colspan="5" class="text-center text-secondary">No posts found. Draft your first article!</td></tr>`;
+                } else {
+                    table.innerHTML = posts.map(post => `
+                        <tr>
+                            <td class="font-medium">${post.title}</td>
+                            <td><span class="status-badge status-${post.published ? 'published' : 'draft'}">${post.published ? 'Published' : 'Draft'}</span></td>
+                            <td class="text-secondary text-sm">${formatDate(post.created_at)}</td>
+                            <td class="text-secondary text-sm">${post.views || 0}</td>
+                            <td>
+                                <div class="flex gap-sm">
+                                    <button class="action-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn" title="View"><i class="fas fa-external-link-alt"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // Fetch Comments (Pending)
+            const { data: comments } = await getComments(null, 'pending');
+            const pendingCount = comments ? comments.length : 0;
+            document.getElementById('sidebar-comment-badge').textContent = pendingCount;
+            document.getElementById('pending-comments-count').textContent = pendingCount;
+
+            const commentsContainer = document.getElementById('recent-comments-list');
+            if (pendingCount === 0) {
+                commentsContainer.innerHTML = `<div class="text-sm text-secondary text-center" style="padding: 1rem;">No pending comments to review! \uD83C\uDF89</div>`;
+            } else {
+                // Show top 3 pending
+                commentsContainer.innerHTML = comments.slice(0, 3).map(c => `
+                    <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); last-child: border-bottom: none;">
+                        <div class="flex justify-between items-center mb-sm">
+                            <span class="text-sm font-semibold">${c.author_name}</span>
+                            <span class="text-xs text-secondary">${formatDate(c.created_at)}</span>
+                        </div>
+                        <p class="text-sm text-secondary" style="margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">"${c.content}"</p>
+                        <div class="flex gap-sm">
+                            <button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Approve</button>
+                            <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Reject</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Fetch Top Posts
+            const { data: topPosts } = await getTopPosts(3);
+            const topPostsContainer = document.getElementById('top-posts-list');
+            if (!topPosts || topPosts.length === 0) {
+                topPostsContainer.innerHTML = `<div class="text-sm text-secondary text-center" style="padding: 1rem;">No top posts yet.</div>`;
+            } else {
+                topPostsContainer.innerHTML = topPosts.map((post, index) => `
+                    <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); ${index === 2 ? 'border-bottom: none;' : ''}">
+                        <div class="flex justify-between items-center mb-sm">
+                            <span class="text-sm font-semibold">${index + 1}. ${post.title}</span>
+                            <span class="text-xs text-secondary"><i class="far fa-eye"></i> ${post.views || 0}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Fetch Keyword Breakouts
+            const { data: keywords } = await getKeywords();
+            const breakouts = keywords ? keywords.filter(k => k.status === 'breakout').slice(0, 3) : [];
+            const breakoutsContainer = document.getElementById('keyword-breakouts-list');
+            if (breakouts.length === 0) {
+                breakoutsContainer.innerHTML = `<div class="text-sm text-secondary p-sm">No breakout keywords today.</div>`;
+            } else {
+                breakoutsContainer.innerHTML = breakouts.map(kw => `
+                    <div class="flex justify-between items-center p-sm border border-secondary rounded-md" style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
+                        <div>
+                            <div class="font-semibold text-sm">"${kw.keyword}"</div>
+                            <div class="text-xs text-secondary"><i class="fas fa-arrow-trend-up text-green"></i> Breakout trend</div>
+                        </div>
+                        <button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="window.location.href='/dashboard/editor.html?keyword=${encodeURIComponent(kw.keyword)}'">Write</button>
+                    </div>
+                `).join('');
+            }
+
+            // Fetch Upcoming Calendar
+            const { data: calendar } = await getCalendarEntries();
+            const upcoming = calendar ? calendar.filter(c => c.planned_date && new Date(c.planned_date) >= new Date()).slice(0, 3) : [];
+            const calendarContainer = document.getElementById('upcoming-calendar-list');
+            if (upcoming.length === 0) {
+                calendarContainer.innerHTML = `<div class="text-sm text-secondary p-sm">No upcoming posts scheduled.</div>`;
+            } else {
+                calendarContainer.innerHTML = upcoming.map(entry => {
+                    const dateObj = new Date(entry.planned_date);
+                    const month = dateObj.toLocaleString('default', { month: 'short' }).toUpperCase();
+                    const day = dateObj.getDate();
+                    return `
+                        <div class="flex gap-md" style="margin-bottom: 1rem;">
+                            <div class="text-center" style="min-width: 40px;">
+                                <div class="text-xs text-secondary">${month}</div>
+                                <div class="font-bold text-xl">${day}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold">${entry.title || 'Untitled'}</div>
+                                <div class="text-xs text-secondary"><span class="status-badge status-${entry.status}"
+                                        style="font-size: 0.6rem;">${entry.status}</span></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    </script>
+</body>
+
+</html>

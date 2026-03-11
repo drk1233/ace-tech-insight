@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ace Tech Insight - The Future of Technology</title>
+    <meta name="description" content="From quantum leaps to interstellar travel, covering the innovations defining the next century of human progress.">
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Dark mode is default. Light mode class swaps colors. */
+        body { background-color: #0f0c0a; color: #ffffff; transition: background 0.3s, color 0.3s; }
+        body.light-mode { background-color: #f4f1ed; color: #111; }
+        body.light-mode header { background-color: rgba(244,241,237,0.95) !important; }
+        body.light-mode .bg-ace-surface, body.light-mode [class*="bg-white/5"] { background-color: #e8e4df !important; }
+        body.light-mode .text-ace-muted { color: #6b7280; }
+
+        .hero-bg {
+            background:
+                linear-gradient(rgba(15,12,10,0.75), rgba(15,12,10,0.93)),
+                url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1400');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .card-zoom:hover img { transform: scale(1.05); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f0c0a; }
+        ::-webkit-scrollbar-thumb { background: #3a322a; border-radius: 3px; }
+
+        /* Utility */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Back to top */
+        #back-to-top {
+            position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+            width: 44px; height: 44px;
+            background: #f68b1e; color: #0f0c0a;
+            border-radius: 50%; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 1.1rem; box-shadow: 0 4px 15px rgba(246,139,30,0.4);
+        }
+        #back-to-top.visible { opacity: 1; pointer-events: auto; }
+        #back-to-top:hover { transform: translateY(-3px); }
+    </style>
+</head>
+
+<body class="min-h-screen antialiased">
+
+    <!-- ──────────────── NAVIGATION ──────────────── -->
+    <header class="sticky top-0 z-50 bg-ace-dark/95 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+
+            <div class="flex items-center gap-8">
+                <!-- Brand -->
+                <a href="/public/index.html" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight hidden sm:block">Ace Tech Insight</span>
+                </a>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-ace-muted">
+                    <a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">AI</a>
+                    <a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a>
+                    <a href="/public/category.html?slug=future-tech" class="text-white border-b-2 border-ace-accent pb-0.5">Future Tech</a>
+                    <a href="/public/category.html?slug=software" class="hover:text-white transition-colors">Software</a>
+                    <a href="/public/category.html?slug=reviews" class="hover:text-white transition-colors">Reviews</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Search -->
+                <div class="relative hidden md:block">
+                    <input id="nav-search" type="text" placeholder="Search..."
+                        class="bg-white/5 border-0 rounded-lg py-1.5 pl-3 pr-9 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none w-44">
+                    <svg class="w-4 h-4 absolute right-2.5 top-2 text-ace-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <a href="/public/index.html" id="subscribe-btn"
+                    class="bg-ace-accent text-ace-dark px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-ace-accent-hover transition-colors">
+                    Subscribe
+                </a>
+                <!-- Dark/Light mode toggle and back-to-top are handled by /js/public.js -->
+                <!-- Mobile menu button -->
+                <button class="lg:hidden text-ace-muted hover:text-white" onclick="document.getElementById('mobile-nav').classList.toggle('hidden')">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile nav -->
+        <div id="mobile-nav" class="hidden lg:hidden border-t border-white/10 mt-3 pt-3 pb-2 px-4 grid grid-cols-3 gap-2 max-w-7xl mx-auto">
+            <a href="/public/category.html?slug=ai" class="text-sm text-ace-muted hover:text-white transition-colors py-1">AI</a>
+            <a href="/public/category.html?slug=gadgets" class="text-sm text-ace-muted hover:text-white transition-colors py-1">Gadgets</a>
+            <a href="/public/category.html?slug=future-tech" class="text-sm text-white py-1">Future Tech</a>
+            <a href="/public/category.html?slug=software" class="text-sm text-ace-muted hover:text-white transition-colors py-1">Software</a>
+            <a href="/public/category.html?slug=reviews" class="text-sm text-ace-muted hover:text-white transition-colors py-1">Reviews</a>
+            <a href="/public/search.html" class="text-sm text-ace-muted hover:text-white transition-colors py-1">Search</a>
+        </div>
+    </header>
+
+    <!-- ──────────────── HERO ──────────────── -->
+    <section class="hero-bg py-24 px-4 text-center border-b border-white/5" id="hero-section">
+        <div class="max-w-3xl mx-auto" id="hero-content">
+            <span class="inline-block px-3 py-1 bg-ace-accent/20 text-ace-accent text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Featured</span>
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight" id="hero-title">Ace Tech Insight</h1>
+            <p class="text-ace-muted text-lg leading-relaxed mb-10 max-w-xl mx-auto" id="hero-excerpt">
+                From quantum leaps to interstellar travel, we cover the innovations defining the next century of human progress.
+            </p>
+            <a id="hero-cta" href="#posts"
+                class="inline-flex items-center gap-2 bg-ace-accent text-ace-dark px-8 py-3 rounded-lg font-bold hover:bg-ace-accent-hover transition-all duration-200 shadow-lg shadow-ace-accent/20">
+                Read Article
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- ──────────────── MAIN CONTENT ──────────────── -->
+    <main class="max-w-7xl mx-auto px-4 py-14 lg:grid lg:grid-cols-12 lg:gap-12">
+
+        <!-- ── Article Grid (8 cols) ── -->
+        <div class="lg:col-span-8">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold">Latest in Future Tech</h2>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="text-ace-muted">Sorting:</span>
+                    <button class="text-ace-accent font-semibold flex items-center gap-1 hover:text-ace-accent-hover transition-colors">
+                        Newest First
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic post grid -->
+            <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+                <!-- Loading placeholder -->
+                <div class="md:col-span-2 py-16 text-center text-ace-muted text-sm">
+                    Loading latest articles…
+                </div>
+            </div>
+
+            <!-- Load More -->
+            <div class="mt-14 flex justify-center">
+                <button id="load-more-btn"
+                    class="hidden bg-ace-surface border border-ace-accent/30 text-ace-accent px-12 py-3 rounded-lg font-bold hover:bg-ace-accent hover:text-ace-dark transition-all duration-300">
+                    Load More Articles
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Sidebar (4 cols) ── -->
+        <aside class="lg:col-span-4 mt-14 lg:mt-0 space-y-10">
+
+            <!-- Newsletter -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5">
+                <div class="w-10 h-10 bg-ace-accent/20 rounded-xl flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-ace-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Ace Daily</h3>
+                <p class="text-ace-muted text-sm mb-5 leading-relaxed">
+                    The only tech newsletter you need. Zero fluff, just the future in your inbox.
+                </p>
+                <form id="newsletter-form" class="space-y-3">
+                    <input id="newsletter-email" type="email" placeholder="Your email address"
+                        class="w-full bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                    <button type="submit"
+                        class="w-full bg-ace-accent text-ace-dark font-bold py-3 rounded-lg hover:bg-ace-accent-hover transition-colors">
+                        Join +150k readers
+                    </button>
+                </form>
+                <p class="text-[10px] text-center text-ace-muted mt-4">By subscribing, you agree to our Terms of Service.</p>
+            </div>
+
+            <!-- Popular Categories -->
+            <div>
+                <h3 class="text-lg font-bold mb-5">Popular Categories</h3>
+                <ul id="categories-list" class="space-y-4">
+                    <!-- Populated by JS -->
+                    <li class="text-sm text-ace-muted">Loading…</li>
+                </ul>
+            </div>
+
+            <!-- Trending Right Now -->
+            <div>
+                <h3 class="text-lg font-bold mb-5">Trending Right Now</h3>
+                <div id="trending-list" class="space-y-5">
+                    <!-- Populated by JS -->
+                    <div class="text-sm text-ace-muted">Loading…</div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- ──────────────── FOOTER ──────────────── -->
+    <footer class="bg-ace-dark border-t border-white/5 pt-16 pb-8 px-4 mt-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+            <!-- Brand -->
+            <div class="space-y-5">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight">Ace Tech Insight</span>
+                </div>
+                <p class="text-ace-muted text-sm leading-relaxed">
+                    Leveling the conversation on the technologies that matter most. We dive deep into AI, Hardware, and the future of science.
+                </p>
+                <div class="flex gap-3">
+                    <a href="#" class="w-9 h-9 bg-white/5 rounded-full flex items-center justify-center text-ace-muted hover:bg-ace-accent hover:text-ace-dark transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                    </a>
+                    <a href="#" class="w-9 h-9 bg-white/5 rounded-full flex items-center justify-center text-ace-muted hover:bg-ace-accent hover:text-ace-dark transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                    </a>
+                    <a href="#" class="w-9 h-9 bg-white/5 rounded-full flex items-center justify-center text-ace-muted hover:bg-ace-accent hover:text-ace-dark transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14m-.5 15.5v-5.3a3.26 3.26 0 00-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 011.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 001.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 00-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div>
+                <h4 class="font-bold mb-5">Categories</h4>
+                <ul class="space-y-3 text-sm text-ace-muted">
+                    <li><a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">Artificial Intelligence</a></li>
+                    <li><a href="/public/category.html?slug=future-tech" class="hover:text-white transition-colors">Future Tech</a></li>
+                    <li><a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a></li>
+                    <li><a href="/public/category.html?slug=cybersecurity" class="hover:text-white transition-colors">Cybersecurity</a></li>
+                    <li><a href="/public/category.html?slug=robotics" class="hover:text-white transition-colors">Robotics</a></li>
+                </ul>
+            </div>
+
+            <!-- Company -->
+            <div>
+                <h4 class="font-bold mb-5">Company</h4>
+                <ul class="space-y-3 text-sm text-ace-muted">
+                    <li><a href="/public/about.html" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Advertise</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                </ul>
+            </div>
+
+            <!-- Newsletter mini -->
+            <div>
+                <h4 class="font-bold mb-5">Ace Daily</h4>
+                <p class="text-ace-muted text-sm mb-4">Get the week's best tech stories in one digest.</p>
+                <form class="flex gap-2">
+                    <input type="email" placeholder="Email" class="flex-1 bg-white/5 border-0 rounded-lg py-2 px-3 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none min-w-0">
+                    <button type="submit" class="bg-ace-accent text-ace-dark px-3 py-2 rounded-lg font-bold text-sm hover:bg-ace-accent-hover transition-colors">→</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-ace-muted gap-4">
+            <p>© 2025 Ace Tech Media Group. All rights reserved.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="#" class="hover:text-white transition-colors">Cookies</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ──────────────── APP LOGIC ──────────────── -->
+    <script type="module">
+        import { getPosts, getCategories, getFeaturedPosts, subscribe } from '/js/api.js';
+
+        // Fallback article data (matches Stitch design)
+        const FALLBACK_POSTS = [
+            {
+                slug: '#', title: 'The Rise of Neuromorphic Computing',
+                excerpt: 'How brain-inspired chips are fundamentally changing the architecture of artificial intelligence as we know it.',
+                cover_image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=800',
+                categories: { name: 'Quantum' }, reading_time: 8,
+                published_at: '2024-10-25'
+            },
+            {
+                slug: '#', title: 'Mars Colonization: Year One',
+                excerpt: 'An exclusive look at the blueprints for the first decade on the red planet and the survival tech required.',
+                cover_image: 'https://images.unsplash.com/photo-1614728894747-a83421789f10?auto=format&fit=crop&q=80&w=800',
+                categories: { name: 'Space' }, reading_time: 12,
+                published_at: '2024-10-22'
+            },
+            {
+                slug: '#', title: 'Quantum Encryption Explained',
+                excerpt: 'Securing the future against quantum threats using the strange laws of subatomic particles.',
+                cover_image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=800',
+                categories: { name: 'Cyber' }, reading_time: 6,
+                published_at: '2024-10-20'
+            },
+            {
+                slug: '#', title: 'Next-Gen Solid State Batteries',
+                excerpt: 'The energy storage breakthrough we\'ve been waiting for: safer, faster charging, and higher density.',
+                cover_image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938cb?auto=format&fit=crop&q=80&w=800',
+                categories: { name: 'Energy' }, reading_time: 5,
+                published_at: '2024-10-18'
+            },
+        ];
+
+        const FALLBACK_TRENDING = [
+            {
+                title: "TSMC's New 2nm Node: What We Know",
+                timeAgo: '2 hours ago',
+                img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=200&q=80',
+                slug: '#'
+            },
+            {
+                title: 'MacBook Pro M4 Max Benchmark Leak',
+                timeAgo: '4 hours ago',
+                img: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=200&q=80',
+                slug: '#'
+            },
+            {
+                title: 'GPT-5 Passes Advanced Medical Licensing Exam',
+                timeAgo: '6 hours ago',
+                img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=200&q=80',
+                slug: '#'
+            },
+        ];
+
+        let allPosts = [];
+        let displayedCount = 0;
+        const PAGE_SIZE = 6;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([loadPosts(), loadCategories(), loadFeaturedHero()]);
+            renderTrending();
+            setupEventListeners();
+        });
+
+        // ── Posts ────────────────────────────────────────────────────
+        async function loadPosts() {
+            try {
+                const { data, error } = await getPosts({ limit: 24 });
+                allPosts = (!error && data && data.length) ? data : FALLBACK_POSTS;
+            } catch {
+                allPosts = FALLBACK_POSTS;
+            }
+            displayedCount = 0;
+            document.getElementById('posts-grid').innerHTML = '';
+            showMorePosts();
+        }
+
+        function showMorePosts() {
+            const grid = document.getElementById('posts-grid');
+            const batch = allPosts.slice(displayedCount, displayedCount + PAGE_SIZE);
+            displayedCount += batch.length;
+
+            batch.forEach(post => {
+                const cat  = post.categories?.name || 'Tech';
+                const date = post.published_at
+                    ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '';
+                const img  = post.cover_image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800';
+                const rt   = post.reading_time || 5;
+                const href = post.slug && post.slug !== '#' ? `/public/article.html?slug=${post.slug}` : '#';
+
+                const article = document.createElement('article');
+                article.className = 'group card-zoom cursor-pointer';
+                article.innerHTML = `
+                    <a href="${href}" class="block">
+                        <div class="relative aspect-video rounded-xl overflow-hidden mb-4">
+                            <img src="${img}" alt="${post.title}"
+                                class="object-cover w-full h-full transition-transform duration-500"
+                                loading="lazy"
+                                onerror="this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800'">
+                            <span class="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-[10px] font-bold tracking-wider px-2 py-1 rounded text-white uppercase">${cat}</span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2 group-hover:text-ace-accent transition-colors leading-snug">${post.title}</h3>
+                        <p class="text-ace-muted text-sm line-clamp-2 mb-4">${post.excerpt || ''}</p>
+                        <div class="flex items-center gap-4 text-[10px] text-ace-muted font-bold uppercase tracking-wider">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                ${rt} min read
+                            </span>
+                            ${date ? `<span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                ${date}
+                            </span>` : ''}
+                        </div>
+                    </a>`;
+                grid.appendChild(article);
+            });
+
+            const btn = document.getElementById('load-more-btn');
+            if (displayedCount < allPosts.length) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        // ── Categories ───────────────────────────────────────────────
+        async function loadCategories() {
+            const list = document.getElementById('categories-list');
+            try {
+                const { data } = await getCategories();
+                if (data && data.length) {
+                    const catIconMap = {
+                        'ai': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 14.094A5.973 5.973 0 004 17v1H1v-1a3 3 0 013.75-2.906z"/></svg>`,
+                        'default': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/></svg>`,
+                    };
+                    list.innerHTML = data.slice(0, 5).map((cat, i) => `
+                        <li class="flex items-center justify-between group cursor-pointer" onclick="window.location.href='/public/category.html?slug=${cat.slug}'">
+                            <div class="flex items-center gap-3">
+                                <span class="text-ace-accent">${catIconMap.default}</span>
+                                <span class="text-sm font-medium text-ace-muted group-hover:text-white transition-colors">${cat.name}</span>
+                            </div>
+                            <span class="text-xs text-ace-muted">${cat.post_count || Math.floor(Math.random()*100+20)}</span>
+                        </li>`).join('');
+                    return;
+                }
+            } catch {}
+
+            // Fallback
+            const fallback = [
+                { name: 'Artificial Intelligence', count: 124, slug: 'ai' },
+                { name: 'Cybersecurity', count: 83, slug: 'cybersecurity' },
+                { name: 'Robotics', count: 56, slug: 'robotics' },
+                { name: 'Future Tech', count: 49, slug: 'future-tech' },
+                { name: 'Gadgets', count: 37, slug: 'gadgets' },
+            ];
+            list.innerHTML = fallback.map(cat => `
+                <li class="flex items-center justify-between group cursor-pointer" onclick="window.location.href='/public/category.html?slug=${cat.slug}'">
+                    <div class="flex items-center gap-3">
+                        <span class="text-ace-accent">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/></svg>
+                        </span>
+                        <span class="text-sm font-medium text-ace-muted group-hover:text-white transition-colors">${cat.name}</span>
+                    </div>
+                    <span class="text-xs text-ace-muted">${cat.count}</span>
+                </li>`).join('');
+        }
+
+        // ── Trending ─────────────────────────────────────────────────
+        function renderTrending() {
+            const list = document.getElementById('trending-list');
+            list.innerHTML = FALLBACK_TRENDING.map(item => `
+                <div class="flex gap-4 items-center group cursor-pointer" onclick="window.location.href='${item.slug}'">
+                    <div class="w-16 h-16 shrink-0 rounded-xl overflow-hidden">
+                        <img src="${item.img}" alt="${item.title}"
+                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy">
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold leading-snug group-hover:text-ace-accent transition-colors">${item.title}</h4>
+                        <p class="text-[10px] text-ace-muted mt-1">${item.timeAgo}</p>
+                    </div>
+                </div>`).join('');
+        }
+
+        // ── Event Listeners ─────────────────────────────────────────
+        function setupEventListeners() {
+            document.getElementById('load-more-btn').addEventListener('click', showMorePosts);
+
+            // Newsletter subscribe
+            document.getElementById('newsletter-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const emailEl = document.getElementById('newsletter-email');
+                const email   = emailEl.value.trim();
+                const btn     = e.target.querySelector('button');
+                if (!email) return;
+
+                btn.textContent = 'Joining…';
+                btn.disabled = true;
+                try {
+                    await subscribe(email, '');
+                    btn.textContent = '✓ You\'re in!';
+                    btn.classList.remove('hover:bg-ace-accent-hover');
+                    emailEl.value = '';
+                } catch {
+                    btn.textContent = 'Try again';
+                    btn.disabled = false;
+                }
+            });
+
+            // Search on Enter
+            document.getElementById('nav-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    window.location.href = `/public/search.html?q=${encodeURIComponent(e.target.value.trim())}`;
+                }
+            });
+            // Note: Dark/Light mode toggle, back-to-top, and cookie consent
+            // are injected and managed by /js/public.js for all public pages.
+        }
+
+        // ── Featured Post Hero ───────────────────────────────────────
+        async function loadFeaturedHero() {
+            try {
+                const { data: featured } = await getFeaturedPosts();
+                if (featured && featured.length > 0) {
+                    const post = featured[0];
+                    const cat = post.categories?.name || 'Featured';
+                    document.getElementById('hero-title').textContent = post.title;
+                    document.getElementById('hero-excerpt').textContent = post.excerpt || '';
+                    const cta = document.getElementById('hero-cta');
+                    cta.href = `/public/article.html?slug=${post.slug}`;
+                    cta.textContent = 'Read Article →';
+                    // Update hero background if cover image exists
+                    if (post.cover_image) {
+                        document.getElementById('hero-section').style.backgroundImage =
+                            `linear-gradient(rgba(15,12,10,0.75), rgba(15,12,10,0.93)), url('${post.cover_image}')`;
+                    }
+                    document.querySelector('#hero-section .inline-block').textContent = cat;
+                }
+            } catch (e) {} // silently fall back to static hero
+        }
+    </script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

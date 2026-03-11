@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ace Tech Insight</title>
+    <link>https://acetechinsight.com/</link>
+    <description>The Future of Technology</description>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 29 Oct 2024 10:00:00 GMT</lastBuildDate>
+    <atom:link href="https://acetechinsight.com/public/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Beyond Entanglement: The Next Decade of Quantum Networking</title>
+      <link>https://acetechinsight.com/public/article.html?slug=beyond-entanglement</link>
+      <description>Researchers have achieved a new milestone in quantum state stability, paving the way for a truly global quantum internet.</description>
+      <pubDate>Tue, 29 Oct 2024 09:00:00 GMT</pubDate>
+      <guid>https://acetechinsight.com/public/article.html?slug=beyond-entanglement</guid>
+    </item>
+    <item>
+      <title>Mars Colonization: Year One</title>
+      <link>https://acetechinsight.com/public/article.html?slug=mars-colonization</link>
+      <description>An exclusive look at the blueprints for the first decade on the red planet and the survival tech required.</description>
+      <pubDate>Tue, 22 Oct 2024 09:00:00 GMT</pubDate>
+      <guid>https://acetechinsight.com/public/article.html?slug=mars-colonization</guid>
+    </item>
+    <item>
+      <title>Quantum Cryptography: Is Your Data Truly Safe?</title>
+      <link>https://acetechinsight.com/public/article.html?slug=quantum-cryptography</link>
+      <description>As Shor's algorithm moves closer to practical execution, the race for post-quantum encryption standards reaches a fever pitch.</description>
+      <pubDate>Wed, 16 Oct 2024 09:00:00 GMT</pubDate>
+      <guid>https://acetechinsight.com/public/article.html?slug=quantum-cryptography</guid>
+    </item>
+  </channel>
+</rss>

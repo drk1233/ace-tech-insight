@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category - Ace Tech Insight</title>
+    <meta name="description" content="Browse articles by category on Ace Tech Insight.">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0c0a; color: #ffffff; }
+        .hero-bg {
+            background:
+                linear-gradient(rgba(15,12,10,0.75), rgba(15,12,10,0.93)),
+                url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1400');
+            background-size: cover;
+            background-position: center;
+        }
+        .card-zoom:hover img { transform: scale(1.05); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-50 bg-ace-dark/95 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-8">
+                <a href="/public/index.html" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight hidden sm:block">Ace Tech Insight</span>
+                </a>
+                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-ace-muted" id="cat-nav">
+                    <a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">AI</a>
+                    <a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a>
+                    <a href="/public/category.html?slug=future-tech" class="hover:text-white transition-colors">Future Tech</a>
+                    <a href="/public/category.html?slug=software" class="hover:text-white transition-colors">Software</a>
+                    <a href="/public/category.html?slug=reviews" class="hover:text-white transition-colors">Reviews</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative hidden md:block">
+                    <input id="nav-search" type="text" placeholder="Search..."
+                        class="bg-white/5 border-0 rounded-lg py-1.5 pl-3 pr-9 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none w-44">
+                    <svg class="w-4 h-4 absolute right-2.5 top-2 text-ace-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <a href="/public/index.html" class="bg-ace-accent text-ace-dark px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-ace-accent-hover transition-colors">Subscribe</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero-bg py-20 px-4 text-center border-b border-white/5">
+        <div class="max-w-3xl mx-auto">
+            <span class="inline-block px-3 py-1 bg-ace-accent/20 text-ace-accent text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">Browsing Category</span>
+            <h1 id="cat-title" class="text-5xl md:text-6xl font-bold mb-5 capitalize">All Articles</h1>
+            <p id="cat-desc" class="text-ace-muted text-lg leading-relaxed max-w-xl mx-auto">
+                Explore deep dives, industry news, and expert opinions curated specifically for this topic.
+            </p>
+        </div>
+    </section>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-14 lg:grid lg:grid-cols-12 lg:gap-12">
+
+        <!-- Article Grid -->
+        <div class="lg:col-span-8">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold">Latest Articles</h2>
+                <span class="text-ace-accent text-sm font-semibold flex items-center gap-1">
+                    Newest First
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </span>
+            </div>
+
+            <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+                <div class="md:col-span-2 py-14 text-center text-ace-muted text-sm">Loading articles…</div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="lg:col-span-4 mt-14 lg:mt-0 space-y-10">
+
+            <!-- Categories -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5">
+                <h3 class="text-lg font-bold mb-5">Categories</h3>
+                <ul id="category-sidebar-list" class="space-y-3">
+                    <li class="text-ace-muted text-sm">Loading…</li>
+                </ul>
+            </div>
+
+            <!-- Newsletter -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5">
+                <div class="w-10 h-10 bg-ace-accent/20 rounded-xl flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-ace-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold mb-2">Never Miss an Update</h3>
+                <p class="text-ace-muted text-sm mb-5 leading-relaxed">Get the latest posts from this category delivered directly to your inbox.</p>
+                <form id="newsletter-form" class="space-y-3">
+                    <input id="newsletter-email" type="email" placeholder="Your email address"
+                        class="w-full bg-ace-dark border-0 rounded-lg py-3 px-4 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                    <button type="submit" class="w-full bg-ace-accent text-ace-dark font-bold py-3 rounded-lg hover:bg-ace-accent-hover transition-colors">
+                        Subscribe
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-ace-dark border-t border-white/5 pt-12 pb-8 px-4">
+        <div class="max-w-7xl mx-auto border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-ace-muted gap-4">
+            <a href="/public/index.html" class="flex items-center gap-2 font-bold text-white">
+                <div class="w-7 h-7 bg-ace-accent rounded-full flex items-center justify-center">
+                    <span class="text-ace-dark font-bold leading-none">A</span>
+                </div>
+                Ace Tech Insight
+            </a>
+            <p>© 2025 Ace Tech Media Group. All rights reserved.</p>
+            <div class="flex gap-5">
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="/public/about.html" class="hover:text-white transition-colors">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { getPosts, getCategories, subscribe } from '/js/api.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const slug = urlParams.get('slug');
+
+            if (slug) {
+                const displayName = slug.replace(/-/g, ' ');
+                document.getElementById('cat-title').textContent = displayName;
+                document.title = `${displayName.replace(/\b\w/g, c => c.toUpperCase())} - Ace Tech Insight`;
+
+                // Highlight active nav link
+                document.querySelectorAll('#cat-nav a').forEach(a => {
+                    if (a.href.includes(slug)) a.classList.add('text-white', 'border-b-2', 'border-ace-accent', 'pb-0.5');
+                });
+            }
+
+            await Promise.all([loadPosts(slug), loadCategories(slug)]);
+
+            document.getElementById('nav-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    window.location.href = `/public/search.html?q=${encodeURIComponent(e.target.value.trim())}`;
+                }
+            });
+
+            document.getElementById('newsletter-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const emailEl = document.getElementById('newsletter-email');
+                const btn = e.target.querySelector('button');
+                btn.textContent = 'Joining…';
+                btn.disabled = true;
+                try {
+                    await subscribe(emailEl.value.trim(), '');
+                    btn.textContent = '✓ You\'re in!';
+                    emailEl.value = '';
+                } catch {
+                    btn.textContent = 'Try again';
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        async function loadPosts(slug) {
+            const grid = document.getElementById('posts-grid');
+            try {
+                const { data: posts } = await getPosts({ categorySlug: slug });
+                if (posts && posts.length > 0) {
+                    grid.innerHTML = posts.map(post => {
+                        const cat = post.categories?.name || 'Tech';
+                        const date = post.published_at
+                            ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '';
+                        const img = post.cover_image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800';
+                        return `
+                        <article class="group card-zoom cursor-pointer" onclick="window.location.href='/public/article.html?slug=${post.slug}'">
+                            <div class="relative aspect-video rounded-xl overflow-hidden mb-4">
+                                <img src="${img}" alt="${post.title}"
+                                    class="object-cover w-full h-full transition-transform duration-500" loading="lazy"
+                                    onerror="this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800'">
+                                <span class="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-[10px] font-bold tracking-wider px-2 py-1 rounded text-white uppercase">${cat}</span>
+                            </div>
+                            <h3 class="text-lg font-bold mb-2 group-hover:text-ace-accent transition-colors leading-snug">${post.title}</h3>
+                            <p class="text-ace-muted text-sm line-clamp-2 mb-4">${post.excerpt || ''}</p>
+                            <div class="flex items-center gap-4 text-[10px] text-ace-muted font-bold uppercase tracking-wider">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                    ${post.reading_time || 5} min read
+                                </span>
+                                ${date ? `<span>${date}</span>` : ''}
+                            </div>
+                        </article>`;
+                    }).join('');
+                } else {
+                    grid.innerHTML = `<div class="md:col-span-2 py-12 text-center bg-ace-surface rounded-2xl border border-white/5">
+                        <p class="text-ace-muted">No articles published in this category yet.</p>
+                        <a href="/public/index.html" class="inline-block mt-4 bg-ace-accent text-ace-dark px-6 py-2 rounded-lg font-bold text-sm hover:bg-ace-accent-hover transition-colors">Browse All</a>
+                    </div>`;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadCategories(currentSlug) {
+            try {
+                const { data: categories } = await getCategories();
+                if (categories && categories.length) {
+                    document.getElementById('category-sidebar-list').innerHTML = categories.map(cat => `
+                        <li>
+                            <a href="/public/category.html?slug=${cat.slug}"
+                               class="flex items-center justify-between text-sm py-1.5 ${cat.slug === currentSlug ? 'text-ace-accent font-semibold' : 'text-ace-muted hover:text-white'} transition-colors">
+                                <span>${cat.name}</span>
+                                <svg class="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                            </a>
+                        </li>`).join('');
+                }
+            } catch (e) {}
+        }
+    </script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

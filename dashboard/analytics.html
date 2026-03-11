@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+
+            <div class="nav-section-title">Growth & SEO</div>
+            <a href="/dashboard/analytics.html" class="nav-item active"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="/dashboard/keywords.html" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
+            <a href="/dashboard/calendar.html" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <select id="date-range" class="form-control text-sm"
+                    style="margin-bottom: 0; min-width: 150px; background-color: var(--bg-primary);">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-outline text-sm" onclick="alert('Downloading PDF report...')"><i
+                        class="fas fa-download"></i> Export Report</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Traffic Analytics</h1>
+                    <p class="text-secondary">Understanding your audience and content performance.</p>
+                </div>
+            </div>
+
+            <!-- Overview Cards -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Views <i class="far fa-eye text-orange"></i></div>
+                    <div class="stat-value" id="stat-views">0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 15%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Reads <i class="fas fa-book-open text-orange"></i></div>
+                    <div class="stat-value" id="stat-reads">0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 12%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Avg Read Rate <i class="fas fa-percentage text-orange"></i></div>
+                    <div class="stat-value" id="stat-rate">0%</div>
+                    <div class="stat-change negative"><i class="fas fa-arrow-down"></i> 2%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Newsletter Growth <i class="fas fa-user-plus text-orange"></i></div>
+                    <div class="stat-value" id="stat-growth">+0</div>
+                    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> 43%</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+
+                <!-- Line Chart: Traffic -->
+                <div class="panel" style="margin-bottom: 0;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Views over Time</h3>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="viewsChart" height="100"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart: Top Posts -->
+                <div class="panel" style="margin-bottom: 0;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Top 5 by Views</h3>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="topPostsChart" height="230"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- All Content Performance Table -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Content Performance</h3>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="performance-table">
+                        <thead>
+                            <tr>
+                                <th>Article Title</th>
+                                <th style="text-align: right;">Total Views</th>
+                                <th style="text-align: right;">Reads (Scrolled 80%)</th>
+                                <th style="text-align: right;">Read Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center text-secondary">Loading metrics...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getAllPosts, getSubscribers } from '/js/api.js';
+        import { formatDate } from '/js/utils.js';
+
+        let viewsChartObj = null;
+        let topPostsChartObj = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            Chart.defaults.color = '#a1a1aa';
+            Chart.defaults.font.family = '"Inter", sans-serif';
+
+            await loadAnalyticsData();
+
+            // Wire date filter
+            document.getElementById('date-range').addEventListener('change', () => loadAnalyticsData());
+        });
+
+        async function loadAnalyticsData() {
+            const { data: allPosts } = await getAllPosts();
+            if (!allPosts) return;
+
+            const rangeVal = document.getElementById('date-range').value;
+            const days = parseInt(rangeVal);
+            const cutoff = isNaN(days) ? null : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+            // Filter published posts within date range
+            const posts = allPosts.filter(p => {
+                if (p.status && p.status !== 'published') return false;
+                if (cutoff && p.published_at) return new Date(p.published_at) >= cutoff;
+                return true;
+            });
+
+            let totalViews = 0;
+            let totalReads = 0;
+            posts.forEach(p => {
+                totalViews += (p.views || 0);
+                totalReads += (p.reads || 0);
+            });
+
+            const avgRate = totalViews > 0 ? Math.round((totalReads / totalViews) * 100) : 0;
+
+            document.getElementById('stat-views').textContent = totalViews.toLocaleString();
+            document.getElementById('stat-reads').textContent = totalReads.toLocaleString();
+            document.getElementById('stat-rate').textContent = avgRate + '%';
+
+            const { data: subs } = await getSubscribers();
+            if (subs) {
+                const recentSubs = cutoff
+                    ? subs.filter(s => new Date(s.created_at) >= cutoff).length
+                    : subs.length;
+                document.getElementById('stat-growth').textContent = '+' + recentSubs;
+            }
+
+            renderViewsChart();
+            renderTopPostsChart(posts);
+            renderPerformanceTable(posts);
+        }
+
+        function generateMockTimeline(days) {
+            const labels = [];
+            const data = [];
+            for (let i = days; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+                // Random organic looking growth
+                const base = 100 + (Math.random() * 50);
+                const weekendDip = (d.getDay() === 0 || d.getDay() === 6) ? 0.6 : 1;
+                data.push(Math.round(base * weekendDip));
+            }
+            return { labels, data };
+        }
+
+        function renderViewsChart() {
+            const ctx = document.getElementById('viewsChart').getContext('2d');
+            const targetDays = parseInt(document.getElementById('date-range').value) || 30;
+            const timeline = generateMockTimeline(targetDays);
+
+            if (viewsChartObj) viewsChartObj.destroy();
+
+            // Gradient fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(255, 138, 0, 0.5)'); // Brand orange
+            gradient.addColorStop(1, 'rgba(255, 138, 0, 0.0)');
+
+            viewsChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeline.labels,
+                    datasets: [{
+                        label: 'Page Views',
+                        data: timeline.data,
+                        borderColor: '#ff8a00',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4, // smooth curves
+                        pointRadius: 0, // hide points by default
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTopPostsChart(posts) {
+            const ctx = document.getElementById('topPostsChart').getContext('2d');
+
+            // Sort by views desc
+            const sorted = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+
+            const labels = sorted.map(p => p.title.length > 20 ? p.title.substring(0, 20) + '...' : p.title);
+            const data = sorted.map(p => p.views || 0);
+
+            if (topPostsChartObj) topPostsChartObj.destroy();
+
+            topPostsChartObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Views',
+                        data: data,
+                        backgroundColor: '#ff8a00',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Horizontal bar chart
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPerformanceTable(posts) {
+            const table = document.getElementById('performance-table').querySelector('tbody');
+
+            if (posts.length === 0) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center text-secondary">No data available.</td></tr>`;
+                return;
+            }
+
+            const sorted = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0));
+
+            table.innerHTML = sorted.map(p => {
+                const v = p.views || 0;
+                // mock reads
+                const r = v > 0 ? Math.floor(v * (0.6 + (Math.random() * 0.3))) : 0;
+                const rate = v > 0 ? Math.round((r / v) * 100) : 0;
+
+                return `
+                <tr>
+                    <td class="font-medium">
+                        <a href="/public/article.html?slug=${p.slug}" target="_blank" class="hover:underline hover:text-orange" style="color:var(--text-primary); text-decoration:none;">${p.title}</a>
+                        <div class="text-xs text-secondary mt-1">Published ${formatDate(p.published_at || p.created_at)}</div>
+                    </td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;">${v.toLocaleString()}</td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary);">${r.toLocaleString()}</td>
+                    <td style="text-align: right;">
+                        <span class="badge ${rate > 50 ? 'badge-orange' : ''}" style="background: ${rate > 50 ? '' : 'rgba(255,255,255,0.05)'}">${rate}%</span>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+    </script>
+</body>
+
+</html>

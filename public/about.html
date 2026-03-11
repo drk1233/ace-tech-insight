@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Ace Tech Insight</title>
+    <meta name="description" content="About Ace Tech Insight and its founder.">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0c0a; color: #ffffff; }
+    </style>
+</head>
+<body class="min-h-screen antialiased flex flex-col">
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-50 bg-ace-dark/95 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-8">
+                <a href="/public/index.html" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight hidden sm:block">Ace Tech Insight</span>
+                </a>
+                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-ace-muted">
+                    <a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">AI</a>
+                    <a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a>
+                    <a href="/public/category.html?slug=future-tech" class="hover:text-white transition-colors">Future Tech</a>
+                    <a href="/public/category.html?slug=software" class="hover:text-white transition-colors">Software</a>
+                    <a href="/public/category.html?slug=reviews" class="hover:text-white transition-colors">Reviews</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative hidden md:block">
+                    <input id="nav-search" type="text" placeholder="Search..."
+                        class="bg-white/5 border-0 rounded-lg py-1.5 pl-3 pr-9 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none w-44">
+                    <svg class="w-4 h-4 absolute right-2.5 top-2 text-ace-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <a href="/public/index.html" class="bg-ace-accent text-ace-dark px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-ace-accent-hover transition-colors">Subscribe</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="flex-grow max-w-5xl mx-auto px-4 py-20">
+        
+        <div class="text-center mb-20 max-w-3xl mx-auto">
+            <span class="inline-block px-3 py-1 bg-ace-accent/20 text-ace-accent text-[10px] font-bold uppercase tracking-widest rounded-full mb-5">
+                Mission
+            </span>
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">Leading the conversation on the technologies that matter most.</h1>
+            <p class="text-ace-muted text-xl leading-relaxed">
+                We dive deep into AI, hardware, spatial computing, and the future of science to bring you clarity in an accelerating world.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-24">
+            <div>
+                <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=600&q=80"
+                    alt="Founder" class="rounded-2xl border border-white/10 w-full object-cover aspect-square shadow-2xl">
+            </div>
+            <div>
+                <h2 class="text-3xl font-bold mb-6">About the Founder</h2>
+                <p class="text-ace-muted text-lg mb-6 leading-relaxed">
+                    Hi, I'm Fortune. I started Ace Tech Insight because I realized the gap between academic research and public understanding of deep tech was widening every day.
+                </p>
+                <p class="text-ace-muted text-lg mb-8 leading-relaxed">
+                    My goal is to translate complex paradigms like neuromorphic computing, quantum networks, and spatial architecture into readable, actionable insights for builders and investors.
+                </p>
+                <div class="flex gap-4">
+                    <a href="#" class="px-6 py-3 rounded-lg font-bold border border-white/15 hover:bg-white/5 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.83 9.83 0 01-2.828.775 4.932 4.932 0 002.165-2.724c-.957.567-2.016.978-3.127 1.198a4.918 4.918 0 00-8.38 4.482A13.941 13.941 0 011.671 3.15a4.916 4.916 0 001.523 6.574 4.903 4.903 0 01-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.935 4.935 0 01-2.224.084 4.928 4.928 0 004.6 3.419A9.9 9.9 0 010 19.54a13.94 13.94 0 007.548 2.212c9.142 0 14.307-7.721 13.995-14.646A10.025 10.025 0 0024 4.557z"/></svg>
+                        Follow
+                    </a>
+                    <a href="mailto:contact@acetechinsight.com" class="bg-ace-accent text-ace-dark px-6 py-3 rounded-lg font-bold hover:bg-ace-accent-hover transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                        Contact Me
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Big Newsletter Promo -->
+        <div class="bg-ace-surface p-12 rounded-3xl border border-white/5 text-center">
+            <h2 class="text-3xl font-bold mb-4">Join 150,000+ Readers</h2>
+            <p class="text-ace-muted text-lg max-w-2xl mx-auto mb-8">
+                Get our flagship "Pulse Daily" newsletter. Zero fluff, just the future in your inbox.
+            </p>
+            <form id="newsletter-form" class="flex flex-col sm:flex-row justify-center gap-3 max-w-lg mx-auto">
+                <input id="newsletter-email" type="email" placeholder="Your email address"
+                    class="flex-1 bg-ace-dark border-0 rounded-full py-4 px-6 text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none" required>
+                <button type="submit" class="bg-ace-accent text-ace-dark font-bold py-4 px-8 rounded-full hover:bg-ace-accent-hover transition-colors whitespace-nowrap">
+                    Subscribe Now
+                </button>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-ace-dark border-t border-white/5 pt-12 pb-8 px-4 mt-auto">
+        <div class="max-w-7xl mx-auto border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-ace-muted gap-4">
+            <a href="/public/index.html" class="flex items-center gap-2 font-bold text-white">
+                <div class="w-7 h-7 bg-ace-accent rounded-full flex items-center justify-center">
+                    <span class="text-ace-dark font-bold leading-none">A</span>
+                </div>
+                Ace Tech Insight
+            </a>
+            <p>© 2025 Ace Tech Media Group. All rights reserved.</p>
+            <div class="flex gap-5">
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="/public/about.html" class="text-white">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { subscribe } from '/js/api.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('nav-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    window.location.href = `/public/search.html?q=${encodeURIComponent(e.target.value.trim())}`;
+                }
+            });
+
+            document.getElementById('newsletter-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const emailEl = document.getElementById('newsletter-email');
+                const btn = e.target.querySelector('button');
+                btn.textContent = 'Joining…';
+                btn.disabled = true;
+                try {
+                    await subscribe(emailEl.value.trim(), '');
+                    btn.textContent = '✓ You\'re in!';
+                    emailEl.value = '';
+                } catch {
+                    btn.textContent = 'Try again';
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found - Ace Tech Insight</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0c0a; color: #ffffff; }
+    </style>
+</head>
+<body class="min-h-screen antialiased flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-md w-full text-center">
+        <div class="w-16 h-16 bg-ace-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-[0_0_30px_rgba(246,139,30,0.2)]">
+            <svg class="w-8 h-8 text-ace-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        
+        <h1 class="text-7xl font-bold mb-4 bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">404</h1>
+        <h2 class="text-2xl font-bold mb-4">Connection Lost in Transit</h2>
+        <p class="text-ace-muted mb-10 leading-relaxed">
+            The page you are looking for has been moved, deleted, or never existed in this timeline.
+        </p>
+
+        <form id="search-form" class="relative mb-8 max-w-xs mx-auto">
+            <input type="text" id="search-input" placeholder="Search the archive..." 
+                class="w-full bg-ace-surface border border-white/10 rounded-lg py-3 pl-4 pr-12 text-sm focus:ring-1 focus:ring-ace-accent focus:border-ace-accent outline-none">
+            <button type="submit" class="absolute right-3 top-3 text-ace-muted hover:text-ace-accent transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </button>
+        </form>
+
+        <a href="/public/index.html" class="inline-flex items-center gap-2 bg-ace-accent text-ace-dark px-8 py-3 rounded-lg font-bold hover:bg-ace-accent-hover transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Return to Homepage
+        </a>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const q = document.getElementById('search-input').value.trim();
+            if (q) window.location.href = `/public/search.html?q=${encodeURIComponent(q)}`;
+        });
+    </script>
+</body>
+</html>

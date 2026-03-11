@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Tracker - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+
+    <style>
+        .kw-stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .trend-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .trend-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .trend-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #ff8a00, #ff5500);
+            transition: width 0.6s ease;
+        }
+
+        .trend-score-val {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .status-toggle {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 99px;
+            padding: 2px 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .status-toggle:hover {
+            border-color: #ff8a00;
+            color: #ff8a00;
+        }
+
+        .status-toggle.active {
+            background: rgba(255, 138, 0, 0.15);
+            border-color: #ff8a00;
+            color: #ff8a00;
+        }
+
+        .chart-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kw-search-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .kw-search-bar input {
+            flex: 1;
+        }
+
+        .badge-high { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .badge-med  { background: rgba(255,138,0,0.15);  color: #ff8a00; }
+        .badge-low  { background: rgba(161,161,170,0.1); color: #71717a; }
+
+        @media (max-width: 900px) {
+            .kw-stats-row { grid-template-columns: 1fr; }
+            .chart-panel { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+
+            <div class="nav-section-title">Growth &amp; SEO</div>
+            <a href="/dashboard/analytics.html" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="/dashboard/keywords.html" class="nav-item active"><i class="fas fa-key"></i> Keywords</a>
+            <a href="/dashboard/calendar.html" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <h2 style="font-size: 1rem; font-weight: 600; margin: 0;">Keyword Trend Tracker</h2>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-outline text-sm" id="sync-btn">
+                    <i class="fas fa-sync-alt"></i> Sync Trends
+                </button>
+                <button class="btn btn-primary text-sm" id="open-add-modal">
+                    <i class="fas fa-plus"></i> Add Keyword
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+
+            <!-- Stat Mini Cards -->
+            <div class="kw-stats-row">
+                <div class="stat-card">
+                    <div class="stat-title">Total Tracked <i class="fas fa-key text-orange"></i></div>
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-change positive">Active keywords</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Avg Trend Score <i class="fas fa-fire text-orange"></i></div>
+                    <div class="stat-value" id="stat-avg">0</div>
+                    <div class="stat-change" id="stat-avg-label">out of 100</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Hot Keywords <i class="fas fa-arrow-trend-up text-orange"></i></div>
+                    <div class="stat-value" id="stat-hot">0</div>
+                    <div class="stat-change positive">Score &gt; 70</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="chart-panel">
+                <div class="panel" style="margin-bottom: 0;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Top Keywords by Score</h3>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="kw-bar-chart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-bottom: 0;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Keywords by Category</h3>
+                    </div>
+                    <div class="panel-body" style="display: flex; align-items: center; justify-content: center;">
+                        <canvas id="kw-doughnut-chart" height="200" style="max-width: 220px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Panel -->
+            <div class="panel">
+                <div class="panel-header" style="flex-wrap: wrap; gap: 0.75rem;">
+                    <h3 class="panel-title">All Keywords</h3>
+                    <div class="kw-search-bar" style="margin-bottom:0; flex: 1; min-width: 200px; max-width: 360px;">
+                        <input type="text" id="kw-search" class="form-control text-sm"
+                            placeholder="Search keywords..." style="margin-bottom: 0;">
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="status-toggle active" data-filter="all">All</button>
+                        <button class="status-toggle" data-filter="tracked">Tracked</button>
+                        <button class="status-toggle" data-filter="used">Used</button>
+                        <button class="status-toggle" data-filter="archived">Archived</button>
+                    </div>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="kw-table">
+                        <thead>
+                            <tr>
+                                <th>Keyword Term</th>
+                                <th>Category</th>
+                                <th style="min-width: 160px;">Trend Score</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center text-secondary">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Add Keyword Modal -->
+    <div id="add-kw-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+        <div class="panel" style="width: 100%; max-width: 480px; margin: 0 1rem;">
+            <div class="panel-header">
+                <h3 class="panel-title">Track New Keyword</h3>
+                <button class="action-btn" id="close-add-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="panel-body">
+                <form id="add-kw-form">
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Keyword / Topic *</label>
+                        <input type="text" id="kw-term" class="form-control"
+                            placeholder="e.g. quantum computing breakthroughs" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Category</label>
+                        <input type="text" id="kw-cat" class="form-control" placeholder="e.g. AI, Science, Gadgets">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label class="form-label">Initial Trend Score (0–100)</label>
+                        <input type="number" id="kw-score" class="form-control" min="0" max="100" value="50">
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                        <button type="button" class="btn btn-outline" id="close-add-modal-2">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Keyword</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getKeywords, addKeyword, updateKeyword, deleteKeyword } from '/js/api.js';
+
+        Chart.defaults.color = '#a1a1aa';
+        Chart.defaults.font.family = '"Inter", sans-serif';
+
+        let allKeywords = [];
+        let currentFilter = 'all';
+        let barChartObj = null;
+        let doughnutChartObj = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            await loadKeywords();
+            setupEventListeners();
+        });
+
+        async function loadKeywords() {
+            const { data } = await getKeywords();
+            allKeywords = data || [];
+            renderStats();
+            renderCharts();
+            renderTable();
+        }
+
+        function renderStats() {
+            const total = allKeywords.length;
+            const avg = total > 0
+                ? Math.round(allKeywords.reduce((s, k) => s + (k.trend_score || 0), 0) / total)
+                : 0;
+            const hot = allKeywords.filter(k => (k.trend_score || 0) > 70).length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-avg').textContent = avg;
+            document.getElementById('stat-hot').textContent = hot;
+        }
+
+        function renderCharts() {
+            // Top 8 by score - Bar
+            const top = [...allKeywords]
+                .sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0))
+                .slice(0, 8);
+
+            const barCtx = document.getElementById('kw-bar-chart').getContext('2d');
+            if (barChartObj) barChartObj.destroy();
+            barChartObj = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: top.map(k => k.keyword.length > 22 ? k.keyword.slice(0, 22) + '…' : k.keyword),
+                    datasets: [{
+                        label: 'Trend Score',
+                        data: top.map(k => k.trend_score || 0),
+                        backgroundColor: top.map(k => {
+                            const s = k.trend_score || 0;
+                            return s > 70 ? '#ff8a00' : s > 40 ? 'rgba(255,138,0,0.5)' : 'rgba(255,138,0,0.2)';
+                        }),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Category distribution - Doughnut
+            const catMap = {};
+            allKeywords.forEach(k => {
+                const c = k.category || 'Uncategorized';
+                catMap[c] = (catMap[c] || 0) + 1;
+            });
+            const cats = Object.keys(catMap);
+            const palette = ['#ff8a00', '#ff5500', '#ffb347', '#e64500', '#ffd700', '#cc6600', '#f7931e', '#ff4500'];
+
+            const dCtx = document.getElementById('kw-doughnut-chart').getContext('2d');
+            if (doughnutChartObj) doughnutChartObj.destroy();
+            doughnutChartObj = new Chart(dCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: cats,
+                    datasets: [{
+                        data: cats.map(c => catMap[c]),
+                        backgroundColor: palette.slice(0, cats.length),
+                        borderColor: 'transparent',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const searchTerm = document.getElementById('kw-search').value.toLowerCase();
+            const tbody = document.getElementById('kw-table').querySelector('tbody');
+
+            let filtered = allKeywords;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(k => (k.status || 'tracked') === currentFilter);
+            }
+            if (searchTerm) {
+                filtered = filtered.filter(k =>
+                    k.keyword.toLowerCase().includes(searchTerm) ||
+                    (k.category || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            filtered.sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0));
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary">No keywords found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(kw => {
+                const score = kw.trend_score || 0;
+                const badgeCls = score > 70 ? 'badge-high' : score > 40 ? 'badge-med' : 'badge-low';
+                const status = kw.status || 'tracked';
+                const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+
+                return `
+                <tr>
+                    <td class="font-medium">${kw.keyword}</td>
+                    <td class="text-secondary text-sm">${kw.category || '—'}</td>
+                    <td>
+                        <div class="trend-bar-wrap">
+                            <div class="trend-bar-bg">
+                                <div class="trend-bar-fill" style="width: ${score}%;"></div>
+                            </div>
+                            <span class="trend-score-val">${score}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge ${badgeCls}" style="border-radius: 99px; padding: 2px 10px;">
+                            ${statusLabel}
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 0.25rem; justify-content: flex-end;">
+                            <button class="action-btn cycle-btn" data-id="${kw.id}" data-status="${status}" title="Cycle status">
+                                <i class="fas fa-rotate"></i>
+                            </button>
+                            <button class="action-btn text-red delete-btn" data-id="${kw.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Cycle status: tracked → used → archived → tracked
+            document.querySelectorAll('.cycle-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const statusCycle = { tracked: 'used', used: 'archived', archived: 'tracked' };
+                    const next = statusCycle[btn.dataset.status] || 'tracked';
+                    await updateKeyword(btn.dataset.id, { status: next });
+                    await loadKeywords();
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Delete this keyword?')) return;
+                    await deleteKeyword(btn.dataset.id);
+                    await loadKeywords();
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            // Modal
+            const modal = document.getElementById('add-kw-modal');
+            document.getElementById('open-add-modal').addEventListener('click', () => {
+                modal.style.display = 'flex';
+            });
+            ['close-add-modal', 'close-add-modal-2'].forEach(id => {
+                document.getElementById(id).addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+            });
+
+            // Add keyword form
+            document.getElementById('add-kw-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('[type="submit"]');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+                await addKeyword({
+                    keyword: document.getElementById('kw-term').value.trim(),
+                    category: document.getElementById('kw-cat').value.trim(),
+                    trend_score: parseInt(document.getElementById('kw-score').value) || 50,
+                    status: 'tracked'
+                });
+
+                e.target.reset();
+                document.getElementById('kw-score').value = 50;
+                modal.style.display = 'none';
+                await loadKeywords();
+            });
+
+            // Filters
+            document.querySelectorAll('.status-toggle[data-filter]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.status-toggle[data-filter]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    renderTable();
+                });
+            });
+
+            // Search
+            document.getElementById('kw-search').addEventListener('input', renderTable);
+
+            // Sync button (placeholder)
+            document.getElementById('sync-btn').addEventListener('click', async () => {
+                const btn = document.getElementById('sync-btn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+                btn.disabled = true;
+                await new Promise(r => setTimeout(r, 1500));
+
+                // Simulate updating scores
+                for (const kw of allKeywords) {
+                    const delta = Math.floor((Math.random() - 0.4) * 20);
+                    const newScore = Math.max(0, Math.min(100, (kw.trend_score || 50) + delta));
+                    await updateKeyword(kw.id, { trend_score: newScore });
+                }
+
+                await loadKeywords();
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Trends';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+
+</html>

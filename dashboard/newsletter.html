@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter Broadcast - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+            <a href="/dashboard/newsletter.html" class="nav-item active"><i class="fas fa-envelope"></i> Newsletter</a>
+
+            <div class="nav-section-title">Growth &amp; SEO</div>
+            <a href="/dashboard/analytics.html" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="/dashboard/keywords.html" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
+            <a href="/dashboard/calendar.html" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+            <a href="/dashboard/monetization.html" class="nav-item"><i class="fas fa-dollar-sign"></i> Monetization</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <h2 style="font-size: 1rem; font-weight: 600; margin: 0;">Newsletter Broadcast</h2>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+                
+                <!-- Compose Section -->
+                <div class="panel" style="padding: 0; overflow: hidden;">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding: 1.5rem;">
+                        <h3 class="panel-title">Compose Email</h3>
+                    </div>
+                    <div class="panel-body" style="padding: 1.5rem;">
+                        <form id="compose-form">
+                            <div style="margin-bottom: 1rem;">
+                                <label class="form-label">Recipients</label>
+                                <select id="recipient-type" class="form-control">
+                                    <option value="all">All Active Subscribers</option>
+                                    <option value="premium">Premium Subscribers Only</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label class="form-label">Subject</label>
+                                <input type="text" id="email-subject" class="form-control" placeholder="e.g. 🚀 Ace Daily: The AI Revolution" required>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem;">
+                                <label class="form-label">Body (HTML allowed)</label>
+                                <textarea id="email-body" class="form-control" rows="12" placeholder="Write your newsletter content here..." required></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                                <button type="button" class="btn btn-outline" id="preview-btn">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                                <button type="button" class="btn btn-outline" id="send-test-btn">
+                                    <i class="fas fa-vial"></i> Send Test
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="broadcast-btn">
+                                    <i class="fas fa-paper-plane"></i> Send Broadcast
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- History / Status Sidebar -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Audience Stats</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                                <span class="text-secondary text-sm">Total Subscribers</span>
+                                <span class="font-bold text-lg" id="stat-total">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="text-secondary text-sm">Premium Subscribers</span>
+                                <span class="font-bold text-lg text-orange" id="stat-premium">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="flex: 1;">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Recent Broadcasts</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div id="broadcast-history" class="text-secondary text-sm text-center py-4">
+                                No recent broadcasts found.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="color: #6b7280; font-size: 0.8rem; font-weight: 500; text-transform: uppercase;">Preview Mode</div>
+                    <div id="preview-subject" style="font-weight: 700; color: #111827; font-size: 1.25rem;"></div>
+                </div>
+                <button id="close-preview" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer;">&times;</button>
+            </div>
+            <div id="preview-content" style="padding: 2rem; overflow-y: auto; color: #1f2937; background: #f9fafb;">
+                <!-- HTML Preview Injected Here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getSubscribers } from '/js/api.js';
+        import { sendBroadcast, sendTestEmail } from '/js/newsletter.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+            
+            await loadStats();
+            setupListeners();
+        });
+
+        async function loadStats() {
+            try {
+                const { data } = await getSubscribers();
+                if (data) {
+                    const active = data.filter(s => s.status === 'active');
+                    const premium = active.filter(s => s.premium);
+                    document.getElementById('stat-total').textContent = active.length;
+                    document.getElementById('stat-premium').textContent = premium.length;
+                }
+            } catch (err) {
+                console.error("Could not load stats", err);
+            }
+        }
+
+        function setupListeners() {
+            // Preview Modal
+            document.getElementById('preview-btn').addEventListener('click', () => {
+                const subject = document.getElementById('email-subject').value || '(No Subject)';
+                const body = document.getElementById('email-body').value || '(Empty Body)';
+                
+                document.getElementById('preview-subject').textContent = subject;
+                document.getElementById('preview-content').innerHTML = body;
+                document.getElementById('preview-modal').style.display = 'flex';
+            });
+
+            document.getElementById('close-preview').addEventListener('click', () => {
+                document.getElementById('preview-modal').style.display = 'none';
+            });
+
+            // Send Test
+            document.getElementById('send-test-btn').addEventListener('click', async () => {
+                const subject = document.getElementById('email-subject').value;
+                const body = document.getElementById('email-body').value;
+                if (!subject || !body) return alert("Subject and body are required to send a test.");
+                
+                try {
+                    await sendTestEmail(subject, body);
+                    alert("Test email sent successfully!");
+                } catch (err) {
+                    alert("Error sending test email: " + err.message);
+                }
+            });
+
+            // Send Broadcast
+            document.getElementById('compose-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const subject = document.getElementById('email-subject').value;
+                const body = document.getElementById('email-body').value;
+                const recipientType = document.getElementById('recipient-type').value;
+
+                if (!confirm(`Are you sure you want to broadcast "${subject}" to ${recipientType} subscribers?`)) return;
+
+                const btn = document.getElementById('broadcast-btn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                try {
+                    await sendBroadcast(subject, body, recipientType);
+                    alert("Broadcast sent successfully!");
+                    document.getElementById('compose-form').reset();
+                } catch (err) {
+                    alert("Failed to send broadcast: " + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Broadcast';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

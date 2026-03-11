@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Ace Tech Insight</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ace-dark':         '#0f0c0a',
+                        'ace-surface':      '#1a1612',
+                        'ace-accent':       '#f68b1e',
+                        'ace-accent-hover': '#d47318',
+                        'ace-muted':        '#a09c98',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0c0a; color: #ffffff; }
+        .card-zoom:hover img { transform: scale(1.05); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .cat-filter.active { background: rgba(246,139,30,0.12); color: #f68b1e; font-weight: 600; }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-50 bg-ace-dark/95 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-8">
+                <a href="/public/index.html" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 bg-ace-accent rounded-full flex items-center justify-center">
+                        <span class="text-ace-dark font-bold text-xl leading-none">A</span>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight hidden sm:block">Ace Tech Insight</span>
+                </a>
+                <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-ace-muted">
+                    <a href="/public/category.html?slug=ai" class="hover:text-white transition-colors">AI</a>
+                    <a href="/public/category.html?slug=gadgets" class="hover:text-white transition-colors">Gadgets</a>
+                    <a href="/public/category.html?slug=future-tech" class="hover:text-white transition-colors">Future Tech</a>
+                    <a href="/public/category.html?slug=software" class="hover:text-white transition-colors">Software</a>
+                    <a href="/public/category.html?slug=reviews" class="hover:text-white transition-colors">Reviews</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative hidden md:block">
+                    <input id="nav-search" type="text" placeholder="Search..."
+                        class="bg-white/5 border-0 rounded-lg py-1.5 pl-3 pr-9 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none w-48">
+                    <svg class="w-4 h-4 absolute right-2.5 top-2 text-ace-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <a href="/public/index.html" class="bg-ace-accent text-ace-dark px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-ace-accent-hover transition-colors">Subscribe</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- SEARCH HERO BAR -->
+    <div class="border-b border-white/5 bg-ace-surface/50 px-4 py-10">
+        <div class="max-w-3xl mx-auto text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">
+                Results for <span class="text-ace-accent italic" id="search-query-display">"Quantum Computing"</span>
+            </h1>
+            <p class="text-ace-muted text-sm mb-8">
+                Found <span id="results-count" class="text-white font-semibold">0</span> articles matching your query
+            </p>
+            <!-- Inline search bar -->
+            <form id="search-form" class="relative max-w-xl mx-auto">
+                <input id="search-input" type="text" placeholder="Search articles, topics, tags…"
+                    class="w-full bg-ace-dark border border-white/10 rounded-xl py-4 pl-5 pr-14 text-sm text-white placeholder-ace-muted focus:ring-2 focus:ring-ace-accent focus:outline-none">
+                <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 bg-ace-accent text-ace-dark w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ace-accent-hover transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-12 lg:grid lg:grid-cols-12 lg:gap-12">
+
+        <!-- Sidebar Filters -->
+        <aside class="lg:col-span-3 mb-10 lg:mb-0">
+
+            <!-- Category Filters -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5 mb-6">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-ace-muted mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-ace-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                    Filter by Category
+                </h3>
+                <ul id="category-filters" class="space-y-1">
+                    <li>
+                        <button class="cat-filter active w-full text-left text-sm px-3 py-2 rounded-lg transition-all flex items-center justify-between" data-slug="">
+                            <span>All Categories</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Sort -->
+            <div class="bg-ace-surface p-6 rounded-2xl border border-white/5 mb-6">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-ace-muted mb-4">Sort by</h3>
+                <select id="sort-by" class="w-full bg-ace-dark border-0 rounded-lg py-2.5 px-3 text-sm text-white focus:ring-1 focus:ring-ace-accent focus:outline-none cursor-pointer">
+                    <option value="relevance">Relevance</option>
+                    <option value="newest">Newest First</option>
+                    <option value="views">Most Read</option>
+                </select>
+            </div>
+
+            <!-- Newsletter -->
+            <div class="bg-ace-surface p-5 rounded-2xl border border-white/5 text-center">
+                <p class="text-ace-accent font-bold mb-1">Weekly Pulse</p>
+                <p class="text-ace-muted text-xs mb-4 leading-relaxed">Get the latest breakthroughs delivered to your inbox.</p>
+                <form id="newsletter-form" class="space-y-2">
+                    <input id="nl-email" type="email" placeholder="Your email" class="w-full bg-ace-dark border-0 rounded-lg py-2.5 px-3 text-sm text-white placeholder-ace-muted focus:ring-1 focus:ring-ace-accent focus:outline-none">
+                    <button type="submit" class="w-full bg-ace-accent text-ace-dark font-bold py-2.5 rounded-lg hover:bg-ace-accent-hover transition-colors text-sm">Subscribe</button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Results -->
+        <div class="lg:col-span-9">
+            <div id="search-results-list" class="space-y-6">
+                <!-- Results injected by JS -->
+                <div class="py-12 text-center text-ace-muted text-sm">Searching…</div>
+            </div>
+
+            <!-- Load More -->
+            <div class="mt-14 flex justify-center">
+                <button id="load-more-btn" class="hidden bg-ace-surface border border-ace-accent/30 text-ace-accent px-12 py-3 rounded-lg font-bold hover:bg-ace-accent hover:text-ace-dark transition-all duration-300">
+                    Load More Results
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-ace-dark border-t border-white/5 pt-12 pb-8 px-4 mt-8">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-ace-muted gap-4">
+            <a href="/public/index.html" class="flex items-center gap-2 font-bold text-white">
+                <div class="w-7 h-7 bg-ace-accent rounded-full flex items-center justify-center">
+                    <span class="text-ace-dark font-bold leading-none">A</span>
+                </div>
+                Ace Tech Insight
+            </a>
+            <p>© 2025 Ace Tech Media Group. All rights reserved.</p>
+            <div class="flex gap-5">
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="/public/about.html" class="hover:text-white transition-colors">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { getPosts, getCategories, subscribe } from '/js/api.js';
+
+        const FALLBACK_RESULTS = [
+            {
+                slug: '#', title: 'Beyond Entanglement: The Next Decade of Quantum Networking',
+                excerpt: 'Researchers have achieved a new milestone in quantum state stability, paving the way for a truly global quantum internet.',
+                cover_image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=700',
+                categories: { name: 'Quantum', slug: 'quantum' }, reading_time: 8, views: 12400, published_at: '2024-10-29', featured: true
+            },
+            {
+                slug: '#', title: 'NVIDIA and IBM Announce Strategic Partnership for Hybrid Quantum Computing',
+                excerpt: 'The collaboration aims to integrate CUDA-accelerated simulations with IBM\'s Eagle processor to accelerate drug discovery.',
+                cover_image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=700',
+                categories: { name: 'Industry News', slug: 'industry-news' }, reading_time: 5, views: 8200, published_at: '2024-10-21', featured: false
+            },
+            {
+                slug: '#', title: 'Quantum Cryptography: Is Your Data Truly Safe?',
+                excerpt: 'As Shor\'s algorithm moves closer to practical execution, the race for post-quantum encryption standards reaches a fever pitch.',
+                cover_image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=700',
+                categories: { name: 'Cybersecurity', slug: 'cybersecurity' }, reading_time: 12, views: 15700, published_at: '2024-10-16', featured: false
+            },
+        ];
+
+        let allResults = [];
+        let currentFilter = '';
+        let displayedCount = 0;
+        const PAGE_SIZE = 5;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q') || '';
+
+            if (query) {
+                document.title = `Search: ${query} - Ace Tech Insight`;
+                document.getElementById('search-query-display').textContent = `"${query}"`;
+                document.getElementById('search-input').value = query;
+                document.getElementById('nav-search').value = query;
+            }
+
+            await Promise.all([loadResults(query), loadCategoryFilters()]);
+
+            // Search form
+            document.getElementById('search-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const q = document.getElementById('search-input').value.trim();
+                if (q) window.location.href = `/public/search.html?q=${encodeURIComponent(q)}`;
+            });
+            document.getElementById('nav-search').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    window.location.href = `/public/search.html?q=${encodeURIComponent(e.target.value.trim())}`;
+                }
+            });
+
+            // Sort and Filter updates
+            document.getElementById('sort-by').addEventListener('change', () => {
+                displayedCount = 0;
+                renderResults();
+            });
+
+            // Load More
+            document.getElementById('load-more-btn').addEventListener('click', () => {
+                renderResults(true);
+            });
+
+            // Newsletter
+            document.getElementById('newsletter-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const emailEl = document.getElementById('nl-email');
+                const btn = e.target.querySelector('button');
+                btn.textContent = 'Joining…';
+                btn.disabled = true;
+                try {
+                    await subscribe(emailEl.value.trim(), '');
+                    btn.textContent = '✓ Done!';
+                    emailEl.value = '';
+                } catch {
+                    btn.textContent = 'Try again';
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        async function loadResults(query) {
+            try {
+                const { data, count } = await getPosts({ search: query, limit: 20 });
+                if (data && data.length > 0) {
+                    allResults = data;
+                    document.getElementById('results-count').textContent = count || data.length;
+                    renderResults();
+                    return;
+                }
+            } catch {}
+            // Fallback
+            allResults = FALLBACK_RESULTS;
+            document.getElementById('results-count').textContent = FALLBACK_RESULTS.length;
+            renderResults();
+        }
+
+        function renderResults(append = false) {
+            const sort = document.getElementById('sort-by').value;
+            let filtered = currentFilter ? allResults.filter(p => p.categories?.slug === currentFilter) : allResults;
+
+            if (sort === 'newest') filtered = [...filtered].sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+            else if (sort === 'views') filtered = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0));
+
+            const container = document.getElementById('search-results-list');
+            const btn = document.getElementById('load-more-btn');
+
+            if (!filtered.length) {
+                container.innerHTML = `<div class="py-16 text-center bg-ace-surface rounded-2xl border border-white/5">
+                    <div class="text-4xl mb-4">🔍</div>
+                    <h3 class="text-xl font-bold mb-2">No results found</h3>
+                    <p class="text-ace-muted text-sm mb-6">Try different search terms or browse by category.</p>
+                    <a href="/public/index.html" class="bg-ace-accent text-ace-dark px-6 py-2 rounded-lg font-bold text-sm hover:bg-ace-accent-hover transition-colors">Browse All Articles</a>
+                </div>`;
+                btn.classList.add('hidden');
+                return;
+            }
+
+            if (!append) {
+                container.innerHTML = '';
+                displayedCount = 0;
+            }
+
+            const batch = filtered.slice(displayedCount, displayedCount + PAGE_SIZE);
+            displayedCount += batch.length;
+
+            const html = batch.map(post => {
+                const cat = post.categories?.name || 'Article';
+                const catSlug = post.categories?.slug || '';
+                const date = post.published_at
+                    ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '';
+                const img = post.cover_image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=700';
+                const href = post.slug && post.slug !== '#' ? `/public/article.html?slug=${post.slug}` : '#';
+                const views = post.views ? `${(post.views / 1000).toFixed(1)}k` : '0';
+
+                return `
+                <article class="group cursor-pointer bg-ace-surface border border-white/5 rounded-2xl overflow-hidden flex flex-col sm:flex-row hover:border-ace-accent/30 transition-all duration-200"
+                    onclick="window.location.href='${href}'">
+                    <div class="sm:w-56 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden">
+                        <img src="${img}" alt="${post.title}"
+                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                            onerror="this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=700'">
+                    </div>
+                    <div class="p-6 flex flex-col justify-between flex-1">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="inline-block px-2.5 py-0.5 bg-ace-accent/15 text-ace-accent text-[10px] font-bold uppercase tracking-wider rounded-full">${cat}</span>
+                                <span class="text-xs text-ace-muted">${date}</span>
+                                ${post.featured ? '<span class="text-[10px] bg-ace-accent/10 text-ace-accent px-2 py-0.5 rounded-full font-bold">FEATURED</span>' : ''}
+                            </div>
+                            <h3 class="text-lg font-bold mb-2 group-hover:text-ace-accent transition-colors leading-snug line-clamp-2">${post.title}</h3>
+                            <p class="text-ace-muted text-sm leading-relaxed line-clamp-2">${post.excerpt || ''}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="flex items-center gap-4 text-xs text-ace-muted">
+                                <span class="flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                    ${post.reading_time || 5} min read
+                                </span>
+                                <span class="flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                    ${views} views
+                                </span>
+                            </div>
+                            <span class="text-ace-accent text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+                                Read
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                            </span>
+                        </div>
+                    </div>
+                </article>`;
+            }).join('');
+            
+            if (!append) {
+                container.innerHTML = html;
+            } else {
+                container.insertAdjacentHTML('beforeend', html);
+            }
+
+            if (displayedCount < filtered.length) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        async function loadCategoryFilters() {
+            try {
+                const { data: cats } = await getCategories();
+                if (!cats?.length) return;
+                const list = document.getElementById('category-filters');
+                list.innerHTML = `
+                    <li><button class="cat-filter active w-full text-left text-sm px-3 py-2 rounded-lg transition-all hover:bg-white/5 text-ace-muted" data-slug="">All Categories</button></li>
+                    ${cats.map(cat => `
+                    <li><button class="cat-filter w-full text-left text-sm px-3 py-2 rounded-lg transition-all hover:bg-white/5 text-ace-muted flex items-center justify-between" data-slug="${cat.slug}">
+                        <span>${cat.name}</span>
+                    </button></li>`).join('')}`;
+
+                list.querySelectorAll('.cat-filter').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        list.querySelectorAll('.cat-filter').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentFilter = btn.dataset.slug;
+                        displayedCount = 0;
+                        renderResults();
+                    });
+                });
+            } catch {}
+        }
+    </script>
+    <script src="/js/public.js"></script>
+</body>
+</html>

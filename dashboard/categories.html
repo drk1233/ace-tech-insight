@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Categories & Tags - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item active"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left"></div>
+            <div class="topbar-right">
+                <button class="btn btn-primary text-sm" onclick="window.location.href='/dashboard/editor.html'"><i
+                        class="fas fa-plus"></i> New Post</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Categories & Tags</h1>
+                    <p class="text-secondary">Manage site structure and SEO grouping.</p>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+
+                <!-- Categories -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Categories</h2>
+                    </div>
+                    <!-- Add Form -->
+                    <form class="panel-body flex gap-sm"
+                        style="border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem;" id="add-cat-form">
+                        <input type="text" id="cat-name-input" class="form-control text-sm"
+                            placeholder="New Category Name..." required>
+                        <button type="submit" class="btn btn-primary text-sm" style="white-space: nowrap;">Add
+                            Category</button>
+                    </form>
+                    <!-- Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="categories-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Posts</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center text-secondary">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Tags</h2>
+                    </div>
+                    <!-- Add Form -->
+                    <form class="panel-body flex gap-sm"
+                        style="border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem;" id="add-tag-form">
+                        <input type="text" id="tag-name-input" class="form-control text-sm"
+                            placeholder="New Tag Name..." required>
+                        <button type="submit" class="btn btn-primary text-sm" style="white-space: nowrap;">Add
+                            Tag</button>
+                    </form>
+                    <!-- Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="tags-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Posts</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center text-secondary">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getCategories, getTags } from '/js/api.js';
+        import { supabase } from '/js/supabase.js';
+
+        let categoryCounts = {};
+        let tagCounts = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            await loadCounts();
+            await loadCategoriesManager();
+            await loadTagsManager();
+
+            // Setup Add Forms
+            document.getElementById('add-cat-form').addEventListener('submit', handleAddCategory);
+            document.getElementById('add-tag-form').addEventListener('submit', handleAddTag);
+        });
+
+        // Generates slug from name
+        const createSlug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+        async function loadCounts() {
+            // Count categories
+            const { data: postsCat } = await supabase.from('posts').select('category_id');
+            categoryCounts = (postsCat || []).reduce((acc, p) => {
+                if (p.category_id) acc[p.category_id] = (acc[p.category_id] || 0) + 1;
+                return acc;
+            }, {});
+
+            // Count tags (through post_tags)
+            const { data: postsTags } = await supabase.from('post_tags').select('tag_id');
+            tagCounts = (postsTags || []).reduce((acc, pt) => {
+                if (pt.tag_id) acc[pt.tag_id] = (acc[pt.tag_id] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        async function loadCategoriesManager() {
+            const { data } = await getCategories();
+            const table = document.getElementById('categories-table').querySelector('tbody');
+
+            if (!data || data.length === 0) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center text-secondary">No categories found.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = data.map(cat => `
+                <tr>
+                    <td class="font-medium">${cat.name}</td>
+                    <td class="text-secondary text-sm">${cat.slug}</td>
+                    <td class="text-secondary text-sm">${categoryCounts[cat.id] || 0}</td>
+                    <td style="text-align: right;">
+                        <button class="action-btn delete" data-id="${cat.id}" data-type="category" title="Delete"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            bindDeleteButtons('category');
+        }
+
+        async function loadTagsManager() {
+            const { data } = await getTags();
+            const table = document.getElementById('tags-table').querySelector('tbody');
+
+            if (!data || data.length === 0) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center text-secondary">No tags found.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = data.map(tag => `
+                <tr>
+                    <td class="font-medium">${tag.name}</td>
+                    <td class="text-secondary text-sm">${tag.slug}</td>
+                    <td class="text-secondary text-sm">${tagCounts[tag.id] || 0}</td>
+                    <td style="text-align: right;">
+                        <button class="action-btn delete" data-id="${tag.id}" data-type="tag" title="Delete"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            bindDeleteButtons('tag');
+        }
+
+        async function handleAddCategory(e) {
+            e.preventDefault();
+            const input = document.getElementById('cat-name-input');
+            const name = input.value;
+            const slug = createSlug(name);
+
+            // Direct Supabase insert since api.js doesn't export createCategory explicitly
+            const { error } = await supabase.from('categories').insert([{ name, slug }]);
+
+            if (error) {
+                alert("Failed to add category: " + error.message);
+            } else {
+                input.value = '';
+                await loadCategoriesManager();
+            }
+        }
+
+        async function handleAddTag(e) {
+            e.preventDefault();
+            const input = document.getElementById('tag-name-input');
+            const name = input.value;
+            const slug = createSlug(name);
+
+            const { error } = await supabase.from('tags').insert([{ name, slug }]);
+
+            if (error) {
+                alert("Failed to add tag: " + error.message);
+            } else {
+                input.value = '';
+                await loadTagsManager();
+            }
+        }
+
+        function bindDeleteButtons(type) {
+            const selector = type === 'category' ? '#categories-table .delete' : '#tags-table .delete';
+            const table = type === 'category' ? 'categories' : 'tags';
+            const reloadFunc = type === 'category' ? loadCategoriesManager : loadTagsManager;
+
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    if (confirm(`Delete this ${type}? This might break articles using it.`)) {
+                        const { error } = await supabase.from(table).delete().eq('id', id);
+                        if (error) alert('Delete failed: ' + error.message);
+                        else reloadFunc();
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>

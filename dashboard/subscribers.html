@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Subscribers - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item active"><i class="fas fa-users"></i> Subscribers</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left"></div>
+            <div class="topbar-right">
+                <button class="btn btn-primary text-sm" onclick="alert('Newsletter Broadcast UI coming soon!')"><i
+                        class="fas fa-paper-plane"></i> Send Email</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Newsletter Subscribers</h1>
+                    <p class="text-secondary">Manage your audience and mailing list.</p>
+                </div>
+                <div class="flex gap-sm">
+                    <button class="btn btn-outline text-sm" onclick="alert('Exporting to CSV...')"><i
+                            class="fas fa-file-export"></i> Export CSV</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+
+                    <div style="flex: 1; min-width: 200px; position: relative;">
+                        <i class="fas fa-search text-secondary"
+                            style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                        <input type="text" id="search-input" class="form-control text-sm"
+                            placeholder="Search by name or email..." style="padding-left: 2.5rem; margin-bottom: 0;">
+                    </div>
+
+                    <select id="filter-status" class="form-control text-sm" style="width: auto; margin-bottom: 0;">
+                        <option value="all">All Subscribers</option>
+                        <option value="active">Active</option>
+                        <option value="unsubscribed">Unsubscribed</option>
+                    </select>
+
+                </div>
+
+                <div class="data-table-wrapper">
+                    <table class="data-table" id="subs-table">
+                        <thead>
+                            <tr>
+                                <th>Subscriber</th>
+                                <th>Status</th>
+                                <th>Subscribed Date</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center text-secondary">Loading subscribers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel-body flex justify-between items-center"
+                    style="border-top: 1px solid var(--border-color);">
+                    <div class="text-sm text-secondary">Total: <span id="subs-count">0</span></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        import { getSubscribers } from '/js/api.js';
+        import { formatDate } from '/js/utils.js';
+        import { supabase } from '/js/supabase.js';
+
+        let allSubs = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if (!session) return;
+            document.body.style.display = 'flex';
+
+            await loadSubscribers();
+
+            // Bind filters
+            document.getElementById('search-input').addEventListener('input', renderTable);
+            document.getElementById('filter-status').addEventListener('change', renderTable);
+        });
+
+        async function loadSubscribers() {
+            const { data } = await getSubscribers();
+            if (data) {
+                allSubs = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-status').value;
+
+            const filtered = allSubs.filter(sub => {
+                const searchStr = `${sub.name || ''} ${sub.email}`.toLowerCase();
+                const matchSearch = searchStr.includes(searchTerm);
+
+                let matchStatus = true;
+                if (statusFilter === 'active') matchStatus = sub.opted_in === true;
+                if (statusFilter === 'unsubscribed') matchStatus = sub.opted_in === false;
+
+                return matchSearch && matchStatus;
+            });
+
+            document.getElementById('subs-count').textContent = filtered.length;
+
+            const table = document.getElementById('subs-table').querySelector('tbody');
+
+            if (filtered.length === 0) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center text-secondary">No subscribers found.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = filtered.map(sub => `
+                <tr>
+                    <td>
+                        <div class="font-medium flex items-center gap-sm">
+                            <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: bold; color: var(--text-secondary);">
+                                ${(sub.name || sub.email).charAt(0).toUpperCase()}
+                            </div>
+                            ${sub.name || '<span class="text-muted italic">Unknown Name</span>'}
+                        </div>
+                        <div class="text-xs text-secondary mt-1" style="margin-top: 0.25rem;">${sub.email}</div>
+                    </td>
+                    <td>
+                        <span class="status-badge" style="
+                            ${sub.opted_in ? 'background: rgba(16,185,129,0.1); color: #10b981;' : 'background: rgba(239,68,68,0.1); color: #ef4444;'}
+                        ">${sub.opted_in ? 'Active' : 'Unsubscribed'}</span>
+                    </td>
+                    <td class="text-secondary text-sm">${formatDate(sub.created_at)}</td>
+                    <td style="text-align: right;">
+                        <button class="action-btn text-orange toggle-btn" data-id="${sub.id}" data-opt="${sub.opted_in}" title="${sub.opted_in ? 'Unsubscribe User' : 'Resubscribe User'}">
+                            <i class="fas fa-${sub.opted_in ? 'ban' : 'check'}"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            bindToggleButtons();
+        }
+
+        function bindToggleButtons() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const currentlyOptedIn = e.currentTarget.dataset.opt === 'true';
+                    const newStatus = !currentlyOptedIn;
+
+                    if (confirm(currentlyOptedIn ? "Unsubscribe this user?" : "Resubscribe this user?")) {
+                        const { error } = await supabase.from('subscribers').update({ opted_in: newStatus }).eq('id', id);
+                        if (error) {
+                            alert('Update failed: ' + error.message);
+                        } else {
+                            const sub = allSubs.find(s => s.id === id);
+                            if (sub) sub.opted_in = newStatus;
+                            renderTable();
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
