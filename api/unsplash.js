@@ -7,7 +7,7 @@
  * 
  * Expected GET query params: ?query=your+search&page=1&per_page=12
  */
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
