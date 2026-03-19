@@ -1,0 +1,12 @@
+{
+  "name": "ace-tech-insight",
+  "version": "1.0.0",
+  "description": "Ace Tech Insight Public Blog and Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  }
+}
