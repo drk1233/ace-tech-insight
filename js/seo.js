@@ -1,144 +1,199 @@
-import { getPosts } from './api.js';
+// js/seo.js
 
+/**
+ * Injects dynamic meta tags into the document <head> based on a post object.
+ * 
+ * @param {Object} post The post data containing seo_title, seo_description, cover_image, slug, etc.
+ */
 export function generateMetaTags(post) {
     if (!post) return;
-    
-    document.title = `${post.seo_title || post.title} - Ace Tech Insight`;
-    
-    const metaTags = {
-        'description': post.seo_description || post.excerpt,
-        'og:title': post.seo_title || post.title,
-        'og:description': post.seo_description || post.excerpt,
-        'og:image': post.og_image || post.cover_image,
-        'og:url': window.location.href,
-        'twitter:card': 'summary_large_image'
-    };
 
-    for (const [name, content] of Object.entries(metaTags)) {
-        if (!content) continue;
-        let el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
-        if (!el) {
-            el = document.createElement('meta');
-            if (name.startsWith('og:')) el.setAttribute('property', name);
-            else el.setAttribute('name', name);
-            document.head.appendChild(el);
-        }
-        el.setAttribute('content', content);
-    }
+    const title = post.seo_title || post.title;
+    const description = post.seo_description || post.excerpt || '';
+    const url = window.location.origin + '/public/article.html?slug=' + post.slug;
+    const image = post.cover_image || '';
 
-    if (post.canonical_url) {
-        let canonical = document.querySelector('link[rel="canonical"]');
-        if (!canonical) {
-            canonical = document.createElement('link');
-            canonical.setAttribute('rel', 'canonical');
-            document.head.appendChild(canonical);
-        }
-        canonical.setAttribute('href', post.canonical_url);
+    // Standard Meta
+    document.title = title + " - Ace Tech Insight";
+    setMetaTag('name', 'description', description);
+
+    // OpenGraph
+    setMetaTag('property', 'og:title', title);
+    setMetaTag('property', 'og:description', description);
+    setMetaTag('property', 'og:image', image);
+    setMetaTag('property', 'og:url', url);
+    setMetaTag('property', 'og:type', 'article');
+
+    // Twitter
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', title);
+    setMetaTag('name', 'twitter:description', description);
+    setMetaTag('name', 'twitter:image', image);
+
+    // Canonical
+    let canonical = document.querySelector("link[rel='canonical']");
+    if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonical);
     }
+    canonical.setAttribute('href', url);
 }
 
+/**
+ * Helper to update or create a meta tag.
+ */
+function setMetaTag(attrName, attrValue, content) {
+    let el = document.querySelector(`meta[${attrName}="${attrValue}"]`);
+    if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attrName, attrValue);
+        document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+}
+
+/**
+ * Injects JSON-LD structured data for Articles.
+ */
 export function generateJSONLD(post) {
     if (!post) return;
 
-    const schema = {
+    const jsonld = {
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": post.title,
         "image": post.cover_image ? [post.cover_image] : [],
-        "datePublished": post.published_at,
+        "datePublished": post.published_at || post.created_at,
+        "dateModified": post.updated_at || post.created_at,
         "author": [{
             "@type": "Person",
-            "name": "Fortune",
-            "url": "https://acetechinsight.com/about"
+            "name": post.author_name || "Fortune",
+            "url": window.location.origin + "/public/about.html"
         }],
-        "description": post.excerpt
+        "description": post.seo_description || post.excerpt,
+        "publisher": {
+            "@type": "Organization",
+            "name": "Ace Tech Insight",
+            "logo": {
+                "@type": "ImageObject",
+                "url": window.location.origin + "/assets/logo.png"
+            }
+        }
     };
 
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.text = JSON.stringify(schema);
-    document.head.appendChild(script);
+    let script = document.getElementById('json-ld-article');
+    if (!script) {
+        script = document.createElement('script');
+        script.id = 'json-ld-article';
+        script.type = 'application/ld+json';
+        document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonld);
 }
 
-export async function generateSitemap() {
-    const { data: posts } = await getPosts({ limit: 1000 });
-    if (!posts) return '';
+/**
+ * Generates an XML Sitemap string from an array of published posts.
+ */
+export function generateSitemap(posts) {
+    const urls = posts.map(post => {
+        const loc = window.location.origin + '/public/article.html?slug=' + post.slug;
+        const lastMod = (post.updated_at || post.created_at || '').split('T')[0];
+        
+        return `
+    <url>
+        <loc>${loc}</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+    }).join("");
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-    
-    xml += `  <url>\n    <loc>https://acetechinsight.com/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
-
-    posts.forEach(post => {
-        if (!post.published_at) return;
-        xml += `  <url>\n`;
-        xml += `    <loc>https://acetechinsight.com/public/article.html?slug=${post.slug}</loc>\n`;
-        xml += `    <lastmod>${new Date(post.updated_at || post.published_at).toISOString().split('T')[0]}</lastmod>\n`;
-        xml += `    <changefreq>monthly</changefreq>\n`;
-        xml += `    <priority>0.8</priority>\n`;
-        xml += `  </url>\n`;
-    });
-
-    xml += `</urlset>`;
-    return xml;
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${window.location.origin}/public/index.html</loc>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>${window.location.origin}/public/search.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
+        <loc>${window.location.origin}/public/about.html</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>${urls}
+</urlset>`;
 }
 
-export function calculateSEOScore(post, contentHtml) {
+/**
+ * Calculates a basic SEO score for a post draft.
+ */
+export function calculateSEOScore(postTitle, metaDesc, content, focusKeyword) {
     let score = 0;
-    const kw = (post.focus_keyword || '').toLowerCase();
-    const cleanContext = contentHtml.replace(/<[^>]*>?/gm, '').toLowerCase();
+    const contentLower = content.toLowerCase();
+    const keywordLower = (focusKeyword || '').toLowerCase();
+    const titleLower = (postTitle || '').toLowerCase();
+    const descLower = (metaDesc || '').toLowerCase();
 
-    // Keyword in title
-    if (kw && post.title.toLowerCase().includes(kw)) score += 15;
-    
-    // Keyword in meta description
-    if (kw && post.seo_description && post.seo_description.toLowerCase().includes(kw)) score += 10;
-    
-    // Keyword in first paragraph
-    const firstP = cleanContext.substring(0, 500);
-    if (kw && firstP.includes(kw)) score += 10;
+    // Word Count > 1000 (+10)
+    const wordCount = content.split(/\s+/).length;
+    if (wordCount > 1000) score += 10;
 
-    // Meta description length
-    const descLen = (post.seo_description || '').length;
-    if (descLen >= 120 && descLen <= 160) score += 10;
+    // At least one H2 (+10)
+    if (/<h2.*?>/i.test(content)) score += 10;
 
-    // Meta title length
-    const titleLen = (post.seo_title || post.title || '').length;
-    if (titleLen >= 30 && titleLen <= 60) score += 10;
+    // At least one image (+10)
+    if (/<img.*?>/i.test(content)) score += 10;
 
-    // Headings
-    if (contentHtml.includes('<h2')) score += 10;
+    // At least one link (+10)
+    if (/<a.*?>/i.test(content)) score += 10;
 
-    // Internal link
-    if (contentHtml.includes('href="/') || contentHtml.includes('href=\'\/')) score += 10;
+    // Meta limits (+10 each)
+    if (postTitle && postTitle.length >= 50 && postTitle.length <= 60) score += 10;
+    if (metaDesc && metaDesc.length >= 120 && metaDesc.length <= 160) score += 10;
 
-    // Images
-    if (contentHtml.includes('<img')) score += 10;
+    if (keywordLower) {
+        // Keyword in title (+15)
+        if (titleLower.includes(keywordLower)) score += 15;
+        
+        // Keyword in meta desc (+10)
+        if (descLower.includes(keywordLower)) score += 10;
 
-    // Word count
-    const words = cleanContext.split(/\s+/).length;
-    if (words > 1000) score += 10;
+        // Keyword in first paragraph (naive check: first 300 chars) (+10)
+        const firstParagraphMatch = contentLower.substring(0, 300).includes(keywordLower);
+        if (firstParagraphMatch) score += 10;
 
-    // Keyword density ~1-2%
-    if (kw && words > 100) {
-        const kwOccurrences = (cleanContext.match(new RegExp(kw, 'g')) || []).length;
-        const density = (kwOccurrences / words) * 100;
-        if (density >= 0.5 && density <= 2.5) score += 5;
+        // Density 1-2% (+5)
+        const keywordOccurrences = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
+        const keywordWords = keywordLower.split(/\s+/).length;
+        const density = (keywordOccurrences * keywordWords) / wordCount;
+        if (density >= 0.01 && density <= 0.02) score += 5;
     }
 
+    // Cap at 100
     return Math.min(100, score);
 }
 
-export function checkReadability(contentHtml) {
-    const text = contentHtml.replace(/<[^>]*>?/gm, '');
-    const sentences = text.split(/[.!?]+/).length || 1;
-    const words = text.split(/\s+/).length || 1;
-    const syllables = text.length / 3; // rough estimate
+/**
+ * Simple readability checker based on avg sentence length.
+ */
+export function checkReadability(content) {
+    if(!content || content.trim() === '') return "Easy";
+    
+    // Strip HTML
+    const text = content.replace(/<[^>]+>/g, " ");
+    
+    // Split sentences
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    const words = text.split(/\s+/).length;
+    
+    const avgWordsPerSentence = words / sentences.length;
 
-    // Flesch Reading Ease Formula
-    const score = 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
-
-    if (score >= 70) return 'Easy';
-    if (score >= 50) return 'Medium';
-    return 'Hard';
+    if (avgWordsPerSentence < 14) return "Easy";
+    if (avgWordsPerSentence <= 20) return "Medium";
+    return "Hard";
 }

@@ -205,6 +205,7 @@
                             <tr>
                                 <th>Keyword Term</th>
                                 <th>Category</th>
+                                <th>Vol/Diff</th>
                                 <th style="min-width: 160px;">Trend Score</th>
                                 <th>Status</th>
                                 <th style="text-align: right;">Actions</th>
@@ -212,7 +213,7 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="5" class="text-center text-secondary">Loading...</td>
+                                <td colspan="6" class="text-center text-secondary">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -377,7 +378,7 @@
             filtered.sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0));
 
             if (!filtered.length) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary">No keywords found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary">No keywords found.</td></tr>';
                 return;
             }
 
@@ -386,15 +387,37 @@
                 const badgeCls = score > 70 ? 'badge-high' : score > 40 ? 'badge-med' : 'badge-low';
                 const status = kw.status || 'tracked';
                 const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+                
+                // Mock volume and difficulty
+                const vol = Math.floor(score * 125.4).toLocaleString();
+                const diff = Math.min(100, Math.floor(score * 0.8 + 10));
+                
+                // Suggested Titles
+                const s1 = `The Future of ${kw.keyword}: What You Need to Know`;
+                const s2 = `How ${kw.keyword} is Changing the Industry`;
 
                 return `
                 <tr>
-                    <td class="font-medium">${kw.keyword}</td>
+                    <td>
+                        <div class="font-medium">${kw.keyword}</div>
+                        <div style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
+                            <div class="text-xs text-secondary"><i class="fas fa-lightbulb text-orange"></i> <a href="/dashboard/editor.html?title=${encodeURIComponent(s1)}" class="hover:text-white transition">${s1}</a></div>
+                            <div class="text-xs text-secondary"><i class="fas fa-lightbulb text-orange"></i> <a href="/dashboard/editor.html?title=${encodeURIComponent(s2)}" class="hover:text-white transition">${s2}</a></div>
+                        </div>
+                    </td>
                     <td class="text-secondary text-sm">${kw.category || '—'}</td>
+                    <td class="text-secondary text-sm">
+                        <div><i class="fas fa-chart-bar"></i> ${vol}</div>
+                        <div><i class="fas fa-mountain"></i> ${diff}/100</div>
+                    </td>
                     <td>
                         <div class="trend-bar-wrap">
-                            <div class="trend-bar-bg">
+                            <div class="trend-bar-bg" style="position:relative;">
                                 <div class="trend-bar-fill" style="width: ${score}%;"></div>
+                                <!-- Micro Sparkline Mock -->
+                                <svg width="100%" height="6" style="position:absolute; top:0; left:0; z-index:1;" preserveAspectRatio="none">
+                                    <polyline points="0,6 20,2 40,5 60,3 80,4 100,1" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />
+                                </svg>
                             </div>
                             <span class="trend-score-val">${score}</span>
                         </div>

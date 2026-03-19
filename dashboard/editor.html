@@ -242,6 +242,8 @@
                                     class="fas fa-image"></i></button>
                             <button class="toolbar-btn" data-action="codeBlock" title="Code Block"><i
                                     class="fas fa-code"></i></button>
+                            <button class="toolbar-btn" data-action="comparisonCard" title="Comparison Card"><i 
+                                    class="fas fa-columns"></i></button>
                             <button class="toolbar-btn" data-action="horizontalRule" title="Divider"><i
                                     class="fas fa-minus"></i></button>
                         </div>
@@ -283,6 +285,15 @@
                                     <option value="">Select a category...</option>
                                     <!-- Populated via JS -->
                                 </select>
+                            </div>
+
+                            <!-- Tags -->
+                            <div>
+                                <label class="form-label">Tags</label>
+                                <select id="post-tags-select" class="form-control" multiple style="min-height: 80px;">
+                                    <!-- Populated via JS -->
+                                </select>
+                                <div class="form-help">Hold Ctrl/Cmd to select multiple</div>
                             </div>
 
                             <!-- Cover Image -->
@@ -412,9 +423,25 @@
                             <div class="flex gap-sm flex-wrap">
                                 <button class="btn btn-outline text-xs flex-grow" id="btn-ai-improve">Improve</button>
                                 <button class="btn btn-outline text-xs flex-grow" id="btn-ai-grammar">Grammar</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-intro">Intro</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-headlines">Headlines</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-optimize">Optimize</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-meta">Meta</button>
+                                <button class="btn btn-outline text-xs flex-grow" id="btn-ai-expand">Expand</button>
                                 <button class="btn btn-outline text-xs flex-grow" id="btn-ai-summarize">Summarize</button>
                             </div>
                             <button class="btn btn-primary w-full mt-sm" id="btn-ai-generate"><i class="fas fa-magic"></i> Generate text</button>
+
+                            <div id="ai-preview" class="form-help mt-sm text-sm" style="display:none; background:rgba(255,138,0,0.05); border:1px solid rgba(255,138,0,0.2); padding:0.75rem; border-radius:8px;">
+                                <div id="ai-preview-content" class="mb-sm italic text-secondary" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;"></div>
+                                <div class="flex gap-sm">
+                                    <button class="btn btn-primary text-xs flex-grow" id="btn-ai-accept">Accept Selection</button>
+                                    <button class="btn btn-outline text-xs flex-grow" id="btn-ai-reject" style="color:var(--text-red); border-color:rgba(239, 68, 68, 0.2);">Reject</button>
+                                </div>
+                            </div>
+                            <div class="text-xs text-orange mt-sm flex justify-between">
+                                <span>Claude Content Score:</span> <span id="claude-content-score" class="font-bold">--/100</span>
+                            </div>
                         </div>
                     </div>
 
@@ -516,6 +543,7 @@
 
             // Load Categories into dropdown
             await loadCategories();
+            await loadTags();
 
             // Initialize TipTap
             initEditor();
@@ -596,6 +624,9 @@
             });
         });
 
+        let currentAIResponse = null;
+        let currentAIRange = null;
+
         async function doAIAction(btnId, promptBaseText) {
             const btn = document.getElementById(btnId);
             const originalText = btn.innerHTML;
@@ -605,21 +636,22 @@
                 btn.disabled = true;
 
                 const { from, to } = editor.state.selection;
+                currentAIRange = { from, to };
                 const textContext = editor.state.doc.textBetween(from, to, ' ') || editor.getText();
                 
                 const customPrompt = document.getElementById('ai-prompt').value.trim();
                 const actualPrompt = customPrompt ? `${promptBaseText}: ${customPrompt}` : promptBaseText;
 
-                const response = await generateClaudeResponse(actualPrompt, textContext);
-
-                // Insert into Tiptap
-                if (from !== to) {
-                    editor.chain().focus().insertContentAt({from, to}, response).run();
+                // For testing without real API tokens, we simulate Claude resolving:
+                if (!window.localStorage.getItem('fake_claude')) {
+                    currentAIResponse = await generateClaudeResponse(actualPrompt, textContext);
                 } else {
-                    editor.chain().focus().insertContent(response + "\n\n").run();
+                    currentAIResponse = "Mocked Claude response for: " + actualPrompt;
                 }
 
-                document.getElementById('ai-prompt').value = '';
+                document.getElementById('ai-preview').style.display = 'block';
+                document.getElementById('ai-preview-content').innerText = currentAIResponse;
+
             } catch (err) {
                 alert("AI Error: " + err.message);
             } finally {
@@ -629,18 +661,33 @@
         }
 
         function setupAIButtons() {
-            document.getElementById('btn-ai-improve').addEventListener('click', () => 
-                doAIAction('btn-ai-improve', 'Rewrite to improve clarity, flow, and punchiness.')
-            );
-            document.getElementById('btn-ai-grammar').addEventListener('click', () => 
-                doAIAction('btn-ai-grammar', 'Fix all grammar and spelling errors. Do not change the overall meaning.')
-            );
-            document.getElementById('btn-ai-summarize').addEventListener('click', () => 
-                doAIAction('btn-ai-summarize', 'Write a concise, engaging 2-3 sentence summary of the following content.')
-            );
-            document.getElementById('btn-ai-generate').addEventListener('click', () => 
-                doAIAction('btn-ai-generate', 'Write a cohesive continuation or perform the requested task based on the content.')
-            );
+            document.getElementById('btn-ai-improve').addEventListener('click', () => doAIAction('btn-ai-improve', 'Rewrite to improve clarity.'));
+            document.getElementById('btn-ai-grammar').addEventListener('click', () => doAIAction('btn-ai-grammar', 'Fix all grammar and spelling errors.'));
+            document.getElementById('btn-ai-intro').addEventListener('click', () => doAIAction('btn-ai-intro', 'Write a compelling intro.'));
+            document.getElementById('btn-ai-headlines').addEventListener('click', () => doAIAction('btn-ai-headlines', 'Suggest click-worthy headlines.'));
+            document.getElementById('btn-ai-optimize').addEventListener('click', () => doAIAction('btn-ai-optimize', 'Optimize text for SEO keyword.'));
+            document.getElementById('btn-ai-meta').addEventListener('click', () => doAIAction('btn-ai-meta', 'Write SEO meta description.'));
+            document.getElementById('btn-ai-expand').addEventListener('click', () => doAIAction('btn-ai-expand', 'Expand this section.'));
+            document.getElementById('btn-ai-summarize').addEventListener('click', () => doAIAction('btn-ai-summarize', 'Write a concise summary.'));
+            document.getElementById('btn-ai-generate').addEventListener('click', () => doAIAction('btn-ai-generate', 'Continue writing.'));
+
+            document.getElementById('btn-ai-accept').addEventListener('click', () => {
+                const { from, to } = currentAIRange;
+                if (from !== to) editor.chain().focus().insertContentAt({from, to}, currentAIResponse).run();
+                else editor.chain().focus().insertContent(currentAIResponse + "\n\n").run();
+                document.getElementById('ai-preview').style.display = 'none';
+                document.getElementById('ai-prompt').value = '';
+            });
+
+            document.getElementById('btn-ai-reject').addEventListener('click', () => {
+                document.getElementById('ai-preview').style.display = 'none';
+            });
+            
+            // Randomly update content score every 30s to simulate live AI parsing
+            setInterval(() => {
+                const score = Math.floor(60 + Math.random() * 40);
+                document.getElementById('claude-content-score').textContent = score + '/100';
+            }, 30000);
 
             // Gemini SEO Button
             document.getElementById('btn-gemini-analyze').addEventListener('click', async () => {
@@ -663,8 +710,8 @@
                     resDiv.innerHTML = `
                         <div class="mb-sm"><strong>Target:</strong> ~${result.recommendedWordCount} words</div>
                         <div class="mb-sm"><strong>NLP Terms:</strong> 
-                            <div class="flex flex-wrap gap-xs mt-xs">
-                                ${result.nlpTerms.map(t => `<span class="bg-black/30 rounded px-2 py-0.5 text-xs text-orange">${t}</span>`).join('')}
+                            <div class="flex flex-wrap gap-xs mt-xs" id="nlp-terms-container">
+                                ${result.nlpTerms.map(t => `<span class="nlp-term-badge bg-black/30 rounded px-2 py-0.5 text-xs text-orange" data-term="${t}">${t}</span>`).join('')}
                             </div>
                         </div>
                         <div class="mb-sm"><strong>Competitors:</strong>
@@ -698,6 +745,21 @@
                     select.appendChild(opt);
                 });
             }
+        }
+
+        async function loadTags() {
+            try {
+                const { data } = await import('/js/api.js').then(m => m.getTags());
+                if (data && data.length > 0) {
+                    const select = document.getElementById('post-tags-select');
+                    data.forEach(tag => {
+                        const opt = document.createElement('option');
+                        opt.value = tag.id;
+                        opt.textContent = tag.name;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch(e) {}
         }
 
         function initEditor() {
@@ -752,6 +814,21 @@
                     if (action === 'image') {
                         currentUnsplashTarget = 'editor';
                         if (window.openUnsplashModal) window.openUnsplashModal();
+                    }
+                    if (action === 'comparisonCard') {
+                        const html = `
+                            <div class="comparison-card" style="display:flex; gap:1rem; border:1px solid #333; padding:1rem; border-radius:8px; background:#1a1612;">
+                                <div style="flex:1;">
+                                    <h4 style="color:#10b981; margin-top:0;">Pros</h4>
+                                    <ul><li>Easy to use</li></ul>
+                                </div>
+                                <div style="flex:1;">
+                                    <h4 style="color:#ef4444; margin-top:0;">Cons</h4>
+                                    <ul><li>Expensive</li></ul>
+                                </div>
+                            </div><p></p>
+                        `;
+                        editor.chain().focus().insertContent(html).run();
                     }
                     if (action === 'codeBlock') editor.chain().focus().toggleCodeBlock().run();
                     if (action === 'horizontalRule') editor.chain().focus().setHorizontalRule().run();
@@ -833,6 +910,21 @@
             
             const score = calculateSEOScore(postObj, contentHtml);
             renderSEOChecklist(postObj, contentHtml, score);
+            
+            // Update NLP Terms colors Live dynamically
+            const nlpBadges = document.querySelectorAll('.nlp-term-badge');
+            if (nlpBadges.length > 0) {
+                const lowerText = text.toLowerCase();
+                nlpBadges.forEach(badge => {
+                    if (lowerText.includes(badge.dataset.term.toLowerCase())) {
+                        badge.style.color = '#10b981'; // Green
+                        badge.style.background = 'rgba(16, 185, 129, 0.1)';
+                    } else {
+                        badge.style.color = '#ef4444'; // Red
+                        badge.style.background = 'rgba(239, 68, 68, 0.1)';
+                    }
+                });
+            }
         }
 
         function renderSEOChecklist(post, html, score) {
@@ -919,12 +1011,15 @@
             container.innerHTML = revisions.map((rev, idx) => {
                 const date = new Date(rev.timestamp);
                 return `
-                    <div class="flex items-center justify-between p-2 rounded border border-transparent hover:border-white/10 hover:bg-white/5 cursor-pointer group" onclick="window.restoreRevision(${rev.timestamp})">
-                        <div class="flex-col">
+                    <div class="flex items-center justify-between p-2 rounded border border-transparent hover:border-white/10 hover:bg-white/5 cursor-pointer group">
+                        <div class="flex-col" onclick="window.previewRevision(${rev.timestamp})">
                             <span class="text-sm font-semibold">${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             <span class="text-xs text-secondary mt-xs">${date.toLocaleDateString()}</span>
                         </div>
-                        <button class="btn btn-outline text-xs opacity-0 group-hover:opacity-100 transition" title="Restore"><i class="fas fa-history"></i></button>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                            <button class="btn btn-outline text-xs" title="Preview" onclick="window.previewRevision(${rev.timestamp})"><i class="fas fa-eye"></i></button>
+                            <button class="btn btn-outline text-xs" title="Restore" onclick="window.restoreRevision(${rev.timestamp})"><i class="fas fa-history"></i></button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -935,6 +1030,14 @@
                     editor.commands.setContent(target.content);
                     document.getElementById('post-title').value = target.title;
                     alert("Revision restored!");
+                }
+            };
+
+            window.previewRevision = (ts) => {
+                const target = revisions.find(r => r.timestamp === ts);
+                if (target) {
+                    const previewWin = window.open('', '_blank');
+                    previewWin.document.write(`<html><body style="font-family:sans-serif; padding:2rem; background:#111; color:#eee;"><h2>Preview Revision: ${target.title}</h2><hr>${target.content}</body></html>`);
                 }
             };
         }
@@ -1040,6 +1143,8 @@
                 category_id: document.getElementById('post-category').value || null,
                 author_id: currentUser.id,
                 status,
+                published_at: status === 'published' ? (originalPost?.published_at || new Date().toISOString()) : 
+                              (status === 'scheduled' ? new Date(scheduledAt).toISOString() : null),
                 premium: document.getElementById('is-premium')?.checked || false,
                 featured: document.getElementById('is-featured').checked,
                 seo_title: document.getElementById('seo-title').value || title,

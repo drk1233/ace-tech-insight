@@ -1,247 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Calendar - Ace Admin</title>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
-
     <style>
-        /* ── Calendar Shell ─────────────────────── */
-        .cal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .cal-nav {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .cal-nav .month-label {
-            font-size: 1.25rem;
-            font-weight: 700;
-            min-width: 200px;
-            text-align: center;
-        }
-
-        .cal-nav-btn {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text-primary);
-            border-radius: 8px;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .cal-nav-btn:hover {
-            background: rgba(255,138,0,0.15);
-            border-color: #ff8a00;
-            color: #ff8a00;
-        }
-
-        /* ── Grid ───────────────────────────────── */
-        .cal-grid {
+        .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
             overflow: hidden;
         }
-
-        .cal-day-header {
-            background: var(--bg-secondary);
-            padding: 0.6rem 0.5rem;
+        .calendar-header {
+            background-color: rgba(255,255,255,0.02);
+            padding: 0.75rem;
             text-align: center;
             font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .calendar-day {
+            background-color: var(--bg-secondary);
+            min-height: 120px;
+            padding: 0.5rem;
+            position: relative;
+            transition: background-color var(--transition-fast);
+        }
+        .calendar-day.drag-over {
+            background-color: rgba(255, 138, 0, 0.1);
+        }
+        .calendar-day.other-month {
+            opacity: 0.4;
+        }
+        .day-number {
+            font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-secondary);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
+            margin-bottom: 0.5rem;
         }
-
-        .cal-cell {
-            background: var(--bg-primary);
-            min-height: 110px;
-            padding: 0.5rem;
-            cursor: pointer;
-            transition: background 0.15s;
-            position: relative;
-        }
-
-        .cal-cell:hover {
-            background: var(--bg-secondary);
-        }
-
-        .cal-cell.today {
-            background: rgba(255, 138, 0, 0.07);
-        }
-
-        .cal-cell.today .cal-date-num {
-            background: #ff8a00;
-            color: #000;
-            border-radius: 50%;
-            width: 26px;
-            height: 26px;
+        .calendar-day.today .day-number {
+            color: var(--brand-orange);
+            background: rgba(255, 138, 0, 0.1);
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 50%;
         }
-
-        .cal-cell.other-month {
-            opacity: 0.35;
-            cursor: default;
-        }
-
-        .cal-date-num {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 0.4rem;
-        }
-
-        /* ── Events ─────────────────────────────── */
-        .cal-event {
+        .entry {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
             border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            margin-bottom: 3px;
-            cursor: pointer;
+            margin-bottom: 0.25rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            transition: filter 0.2s;
+            cursor: grab;
+            user-select: none;
         }
-
-        .cal-event:hover { filter: brightness(1.2); }
-
-        .cal-event.type-article  { background: rgba(255,138,0,0.25);  color: #ff8a00; }
-        .cal-event.type-idea     { background: rgba(99,102,241,0.25); color: #818cf8; }
-        .cal-event.type-deadline { background: rgba(239,68,68,0.25);  color: #f87171; }
-        .cal-event.type-social   { background: rgba(34,197,94,0.25);  color: #4ade80; }
-        .cal-event.type-review   { background: rgba(234,179,8,0.25);  color: #facc15; }
-
-        .cal-more {
-            font-size: 0.68rem;
-            color: var(--text-secondary);
-            cursor: pointer;
+        .entry:active {
+            cursor: grabbing;
         }
+        .entry-idea { background: rgba(161, 161, 170, 0.1); color: var(--text-secondary); border-left: 2px solid var(--text-secondary); }
+        .entry-draft { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-left: 2px solid #3b82f6; }
+        .entry-scheduled { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-left: 2px solid #f59e0b; }
+        .entry-published { background: rgba(16, 185, 129, 0.1); color: #10b981; border-left: 2px solid #10b981; }
 
-        .cal-add-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: rgba(255,138,0,0.2);
-            color: #ff8a00;
-            border: none;
-            cursor: pointer;
-            font-size: 0.7rem;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .cal-cell:hover .cal-add-btn {
+        /* Backlog Area */
+        .backlog-area {
             display: flex;
-        }
-
-        .cal-add-btn:hover { background: rgba(255,138,0,0.4); }
-
-        /* ── Legend ─────────────────────────────── */
-        .cal-legend {
-            display: flex;
-            gap: 1.25rem;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            min-height: 60px;
             flex-wrap: wrap;
-            margin-top: 1rem;
-            align-items: center;
         }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-
-        /* ── Modal ──────────────────────────────── */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.65);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-overlay.open {
-            display: flex;
-        }
-
-        .modal-card {
-            width: 100%;
-            max-width: 460px;
-            margin: 0 1rem;
-        }
-
-        /* ── Mini Sidebar List ──────────────────── */
-        .dash-side-panel {
-            display: grid;
-            grid-template-columns: 1fr 280px;
-            gap: 1.5rem;
-            align-items: start;
-        }
-
-        .upcoming-list .upcoming-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .upcoming-item:last-child { border-bottom: none; }
-
-        .upcoming-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-top: 5px;
-            flex-shrink: 0;
-        }
-
-        .upcoming-item-title { font-size: 0.85rem; font-weight: 500; }
-        .upcoming-item-date  { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
-
-        @media (max-width: 900px) {
-            .dash-side-panel { grid-template-columns: 1fr; }
+        .backlog-area.drag-over {
+            background-color: rgba(255, 138, 0, 0.1);
         }
     </style>
 </head>
-
 <body class="dashboard-body" style="display: none;">
 
     <aside class="dashboard-sidebar">
@@ -249,19 +100,15 @@
             <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
             <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
         </div>
-
+        
         <div class="sidebar-nav">
             <div class="nav-section-title">Core</div>
             <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
             <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
             <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
             <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
-
-            <div class="nav-section-title">Community</div>
-            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
-            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
-
-            <div class="nav-section-title">Growth &amp; SEO</div>
+            
+            <div class="nav-section-title">Growth & SEO</div>
             <a href="/dashboard/analytics.html" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
             <a href="/dashboard/keywords.html" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
             <a href="/dashboard/calendar.html" class="nav-item active"><i class="far fa-calendar-alt"></i> Calendar</a>
@@ -271,394 +118,324 @@
     <main class="dashboard-main">
         <header class="dashboard-topbar">
             <div class="topbar-left">
-                <h2 style="font-size: 1rem; font-weight: 600; margin: 0;">Content Calendar</h2>
+                <button class="btn btn-outline text-sm" id="prev-month"><i class="fas fa-chevron-left"></i></button>
+                <span id="current-month-display" class="font-bold" style="margin: 0 1rem;"></span>
+                <button class="btn btn-outline text-sm" id="next-month"><i class="fas fa-chevron-right"></i></button>
+                <button class="btn btn-outline text-sm ml-sm" id="today-btn">Today</button>
             </div>
             <div class="topbar-right">
-                <button class="btn btn-primary text-sm" id="open-add-modal">
-                    <i class="fas fa-plus"></i> New Entry
-                </button>
+                <button class="btn btn-primary text-sm" onclick="openEntryModal()"><i class="fas fa-plus"></i> Add Entry</button>
             </div>
         </header>
 
         <div class="dashboard-content">
-
-            <!-- Calendar nav row -->
-            <div class="cal-header">
-                <div class="cal-nav">
-                    <button class="cal-nav-btn" id="prev-month"><i class="fas fa-chevron-left"></i></button>
-                    <div class="month-label" id="month-label">Loading…</div>
-                    <button class="cal-nav-btn" id="next-month"><i class="fas fa-chevron-right"></i></button>
-                </div>
-                <button class="btn btn-outline text-sm" id="today-btn">Today</button>
-            </div>
-
-            <div class="dash-side-panel">
-
-                <!-- Calendar grid -->
+            <div class="page-header flex justify-between items-end">
                 <div>
-                    <div class="panel" style="padding: 0; overflow: hidden; margin-bottom: 1rem;">
-                        <div class="cal-grid" id="cal-grid">
-                            <!-- Rows rendered by JS -->
-                        </div>
+                    <h1 class="page-title">Content Calendar</h1>
+                    <p class="text-secondary">Schedule and pace your publishing cadence.</p>
+                </div>
+                <!-- Writing Goals Widget -->
+                <div class="text-right" style="min-width: 250px;">
+                    <div class="text-xs text-secondary mb-xs flex justify-between">
+                        <span>Monthly Goal: <strong id="goal-count">0</strong> posts</span>
+                        <a href="#" class="text-orange hover:underline" onclick="setGoal()">Edit</a>
                     </div>
-
-                    <!-- Legend -->
-                    <div class="cal-legend">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Type:</span>
-                        <span style="font-size: 0.8rem;"><span class="legend-dot" style="background:#ff8a00;"></span>Article</span>
-                        <span style="font-size: 0.8rem;"><span class="legend-dot" style="background:#818cf8;"></span>Idea</span>
-                        <span style="font-size: 0.8rem;"><span class="legend-dot" style="background:#f87171;"></span>Deadline</span>
-                        <span style="font-size: 0.8rem;"><span class="legend-dot" style="background:#4ade80;"></span>Social</span>
-                        <span style="font-size: 0.8rem;"><span class="legend-dot" style="background:#facc15;"></span>Review</span>
+                    <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; position: relative;">
+                        <div id="goal-bar" style="height: 100%; width: 0%; background: #ff8a00; transition: width 0.3s ease;"></div>
                     </div>
                 </div>
-
-                <!-- Upcoming panel -->
-                <div class="panel" style="margin-bottom: 0;">
-                    <div class="panel-header">
-                        <h3 class="panel-title">Upcoming</h3>
-                    </div>
-                    <div class="panel-body upcoming-list" id="upcoming-list">
-                        <div class="text-secondary text-sm">Loading…</div>
-                    </div>
-                </div>
-
             </div>
+
+            <!-- Calendar Display -->
+            <div class="calendar-grid mb-md" id="calendar">
+                <!-- Headers -->
+                <div class="calendar-header">Sun</div>
+                <div class="calendar-header">Mon</div>
+                <div class="calendar-header">Tue</div>
+                <div class="calendar-header">Wed</div>
+                <div class="calendar-header">Thu</div>
+                <div class="calendar-header">Fri</div>
+                <div class="calendar-header">Sat</div>
+            </div>
+
+            <!-- Backlog -->
+            <div>
+                <h3 class="text-sm font-semibold mb-sm text-secondary">Idea Backlog (Drag to schedule)</h3>
+                <div class="backlog-area" id="backlog" data-date="backlog">
+                    <!-- Unscheduled items populate here -->
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <!-- Add / Edit Modal -->
-    <div class="modal-overlay" id="entry-modal">
-        <div class="panel modal-card">
-            <div class="panel-header">
-                <h3 class="panel-title" id="modal-title">New Entry</h3>
-                <button class="action-btn" id="close-modal"><i class="fas fa-times"></i></button>
+    <!-- Entry Modal -->
+    <div id="entry-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 100%; max-width: 400px;">
+            <div class="modal-header flex justify-between items-center" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <h2 class="text-xl font-bold">Calendar Entry</h2>
+                <button onclick="closeModal()" class="text-secondary hover:text-white"><i class="fas fa-times"></i></button>
             </div>
-            <div class="panel-body">
-                <form id="entry-form">
-                    <input type="hidden" id="entry-id">
-
-                    <div style="margin-bottom: 1rem;">
-                        <label class="form-label">Title *</label>
-                        <input type="text" id="entry-title" class="form-control"
-                            placeholder="e.g. AI Security Deep Dive" required>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="form-label">Date *</label>
-                            <input type="date" id="entry-date" class="form-control" required>
-                        </div>
-                        <div>
-                            <label class="form-label">Type</label>
-                            <select id="entry-type" class="form-control">
-                                <option value="article">📝 Article</option>
-                                <option value="idea">💡 Idea</option>
-                                <option value="deadline">🔴 Deadline</option>
-                                <option value="social">📱 Social</option>
-                                <option value="review">✅ Review</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 1.5rem;">
-                        <label class="form-label">Notes</label>
-                        <textarea id="entry-notes" class="form-control" rows="3"
-                            placeholder="Optional notes…" style="resize: vertical;"></textarea>
-                    </div>
-
-                    <div style="display: flex; gap: 0.75rem; justify-content: space-between;">
-                        <button type="button" class="btn btn-outline" id="delete-entry-btn"
-                            style="display: none; color: #f87171; border-color: rgba(248,113,113,0.3);">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                        <div style="display: flex; gap: 0.75rem; margin-left: auto;">
-                            <button type="button" class="btn btn-outline" id="cancel-btn">Cancel</button>
-                            <button type="submit" class="btn btn-primary" id="save-btn">
-                                <i class="fas fa-save"></i> Save Entry
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            <form id="entry-form" class="modal-body flex-col gap-sm" style="padding: 1.5rem;">
+                <input type="hidden" id="entry-id">
+                <div>
+                    <label class="form-label">Title</label>
+                    <input type="text" id="entry-title" class="form-control text-sm" required>
+                </div>
+                <div>
+                    <label class="form-label">Status</label>
+                    <select id="entry-status" class="form-control text-sm">
+                        <option value="idea">Idea (Backlog)</option>
+                        <option value="draft">Drafting</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="published">Published</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Date</label>
+                    <input type="date" id="entry-date" class="form-control text-sm">
+                </div>
+                <div class="flex gap-sm mt-sm">
+                    <button type="button" class="btn btn-outline flex-grow" id="entry-delete" style="color: var(--text-red); border-color: rgba(239, 68, 68, 0.2);">Delete</button>
+                    <button type="submit" class="btn btn-primary flex-grow">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script type="module">
         import { requireAuth } from '/js/auth.js';
-        import { getCalendarEntries, createCalendarEntry, updateCalendarEntry, deleteCalendarEntry } from '/js/api.js';
+        
+        let currentDate = new Date();
+        let currentDragElement = null;
 
-        const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const MONTHS = ['January','February','March','April','May','June',
-                        'July','August','September','October','November','December'];
-
-        const TYPE_COLORS = {
-            article:  { dot: '#ff8a00',  cls: 'type-article'  },
-            idea:     { dot: '#818cf8',  cls: 'type-idea'     },
-            deadline: { dot: '#f87171',  cls: 'type-deadline' },
-            social:   { dot: '#4ade80',  cls: 'type-social'   },
-            review:   { dot: '#facc15',  cls: 'type-review'   },
-        };
-
-        let viewYear, viewMonth;
-        let allEntries = [];
-        let editingId = null;
-
-        const today = new Date();
+        // Mock State (In production, replace with API calls to the calendar table created earlier)
+        let calendarEntries = [
+            { id: '1', title: 'Why GraphQL is dying', status: 'published', date: '2026-10-10' },
+            { id: '2', title: 'Vue 4.0 First Look', status: 'scheduled', date: '2026-10-22' },
+            { id: '3', title: 'Top 10 Tailwind Tricks', status: 'draft', date: '2026-10-15' },
+            { id: '4', title: 'Is Web3 actually dead?', status: 'idea', date: null }
+        ];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const session = await requireAuth();
-            if (!session) return;
+            if(!session) return;
             document.body.style.display = 'flex';
 
-            viewYear  = today.getFullYear();
-            viewMonth = today.getMonth(); // 0-indexed
+            updateGoalWidget();
+            renderCalendar(currentDate);
 
-            await loadEntries();
-            setupListeners();
+            // Bind Navigation
+            document.getElementById('prev-month').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar(currentDate);
+            });
+            document.getElementById('next-month').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar(currentDate);
+            });
+            document.getElementById('today-btn').addEventListener('click', () => {
+                currentDate = new Date();
+                renderCalendar(currentDate);
+            });
+
+            // Bind Form
+            document.getElementById('entry-form').addEventListener('submit', handleSaveEntry);
+            document.getElementById('entry-delete').addEventListener('click', handleDeleteEntry);
+
+            // Bind Drop Zone for Backlog
+            const backlog = document.getElementById('backlog');
+            backlog.addEventListener('dragover', e => { e.preventDefault(); backlog.classList.add('drag-over'); });
+            backlog.addEventListener('dragleave', () => backlog.classList.remove('drag-over'));
+            backlog.addEventListener('drop', handleDrop);
         });
 
-        // ── Data ────────────────────────────────────────────────
-        async function loadEntries() {
-            const { data } = await getCalendarEntries(viewMonth + 1, viewYear);
-            allEntries = data || [];
-            render();
+        function renderCalendar(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth();
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('current-month-display').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            
+            const calendar = document.getElementById('calendar');
+            // Remove previous days but keep headers
+            while (calendar.children.length > 7) {
+                calendar.removeChild(calendar.lastChild);
+            }
+
+            const today = new Date();
+            const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+
+            for (let i = 0; i < firstDay; i++) {
+                const dayNum = daysInPrevMonth - firstDay + i + 1;
+                calendar.appendChild(createDay(dayNum, true));
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isToday = isCurrentMonth && today.getDate() === i;
+                const dDateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                
+                const d = createDay(i, false, isToday, dDateStr);
+                
+                calendarEntries.filter(e => e.date === dDateStr).forEach(entry => {
+                    d.appendChild(createEntryElement(entry));
+                });
+                
+                calendar.appendChild(d);
+            }
+
+            renderBacklog();
         }
 
-        // ── Render ──────────────────────────────────────────────
-        function render() {
-            document.getElementById('month-label').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
-            renderGrid();
-            renderUpcoming();
+        function renderBacklog() {
+            const backlog = document.getElementById('backlog');
+            backlog.innerHTML = '';
+            calendarEntries.filter(e => !e.date).forEach(entry => {
+                backlog.appendChild(createEntryElement(entry));
+            });
+            if(backlog.children.length === 0) {
+                backlog.innerHTML = '<span class="text-xs text-secondary italic self-center">No backlog items.</span>';
+            }
         }
 
-        function renderGrid() {
-            const grid = document.getElementById('cal-grid');
+        function createDay(num, isOther, isToday = false, dateStr = null) {
+            const d = document.createElement('div');
+            d.className = 'calendar-day';
+            if (isOther) d.classList.add('other-month');
+            if (isToday) d.classList.add('today');
+            if (dateStr) d.setAttribute('data-date', dateStr);
+            
+            d.innerHTML = `<div class="day-number">${num}</div>`;
 
-            // Day headers
-            let html = DAYS.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+            // Drop zone bindings
+            if (dateStr) {
+                d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('drag-over'); });
+                d.addEventListener('dragleave', () => d.classList.remove('drag-over'));
+                d.addEventListener('drop', handleDrop);
+            }
 
-            const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-            const daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
-            const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+            return d;
+        }
 
-            for (let i = 0; i < totalCells; i++) {
-                let date, isOther = false;
-                if (i < firstDay) {
-                    date = new Date(viewYear, viewMonth - 1, daysInPrev - firstDay + 1 + i);
-                    isOther = true;
-                } else if (i >= firstDay + daysInMonth) {
-                    date = new Date(viewYear, viewMonth + 1, i - firstDay - daysInMonth + 1);
-                    isOther = true;
-                } else {
-                    date = new Date(viewYear, viewMonth, i - firstDay + 1);
+        function createEntryElement(entry) {
+            const el = document.createElement('div');
+            el.className = `entry entry-${entry.status}`;
+            el.textContent = entry.title;
+            el.draggable = true;
+            el.setAttribute('data-id', entry.id);
+
+            el.addEventListener('dragstart', (e) => {
+                currentDragElement = entry;
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => el.style.opacity = '0.5', 0);
+            });
+            el.addEventListener('dragend', () => {
+                el.style.opacity = '1';
+                currentDragElement = null;
+            });
+            el.addEventListener('click', () => {
+                openEntryModal(entry);
+            });
+            return el;
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (currentDragElement) {
+                const newDate = this.getAttribute('data-date');
+                // Update Data
+                const entry = calendarEntries.find(i => i.id === currentDragElement.id);
+                if (entry) {
+                    entry.date = newDate === 'backlog' ? null : newDate;
+                    if(newDate === 'backlog' && entry.status === 'scheduled') entry.status = 'idea';
                 }
-
-                const isoDate = toISODate(date);
-                const isToday = isoDate === toISODate(today);
-                const dayEvents = allEntries.filter(e => e.date === isoDate);
-
-                const maxVisible = 3;
-                const visible    = dayEvents.slice(0, maxVisible);
-                const overflow   = dayEvents.length - maxVisible;
-
-                const eventsHtml = visible.map(ev => {
-                    const t = TYPE_COLORS[ev.type] || TYPE_COLORS.article;
-                    return `<div class="cal-event ${t.cls}" data-id="${ev.id}" title="${ev.notes || ''}">${ev.title}</div>`;
-                }).join('') +
-                (overflow > 0 ? `<div class="cal-more">+${overflow} more</div>` : '');
-
-                html += `
-                <div class="cal-cell ${isOther ? 'other-month' : ''} ${isToday ? 'today' : ''}"
-                     data-date="${isoDate}">
-                    <div class="cal-date-num">${date.getDate()}</div>
-                    ${eventsHtml}
-                    ${!isOther ? `<button class="cal-add-btn" data-date="${isoDate}" title="Add entry"><i class="fas fa-plus"></i></button>` : ''}
-                </div>`;
+                // Save to API (mocked)
+                // await updateCalendarEntry(...)
+                
+                renderCalendar(currentDate);
+                updateGoalWidget();
             }
-
-            grid.innerHTML = html;
-
-            // Click on date cell (not button, not event)
-            grid.querySelectorAll('.cal-cell:not(.other-month)').forEach(cell => {
-                cell.addEventListener('click', e => {
-                    if (e.target.closest('.cal-event') || e.target.closest('.cal-add-btn')) return;
-                    openModal(null, cell.dataset.date);
-                });
-            });
-
-            // Click quick-add button
-            grid.querySelectorAll('.cal-add-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    e.stopPropagation();
-                    openModal(null, btn.dataset.date);
-                });
-            });
-
-            // Click event pill to edit
-            grid.querySelectorAll('.cal-event').forEach(pill => {
-                pill.addEventListener('click', e => {
-                    e.stopPropagation();
-                    const entry = allEntries.find(ev => ev.id == pill.dataset.id);
-                    if (entry) openModal(entry);
-                });
-            });
         }
 
-        function renderUpcoming() {
-            const upcomingEl = document.getElementById('upcoming-list');
-            const todayISO   = toISODate(today);
-
-            const future = allEntries
-                .filter(e => e.date >= todayISO)
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .slice(0, 10);
-
-            if (!future.length) {
-                upcomingEl.innerHTML = '<div class="text-secondary text-sm">No upcoming entries.</div>';
-                return;
-            }
-
-            upcomingEl.innerHTML = future.map(ev => {
-                const t    = TYPE_COLORS[ev.type] || TYPE_COLORS.article;
-                const date = new Date(ev.date + 'T00:00:00');
-                const label = formatDateLabel(date);
-                return `
-                <div class="upcoming-item" style="cursor:pointer;" data-id="${ev.id}">
-                    <span class="upcoming-dot" style="background:${t.dot};"></span>
-                    <div>
-                        <div class="upcoming-item-title">${ev.title}</div>
-                        <div class="upcoming-item-date">${label} · ${capitalize(ev.type)}</div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            upcomingEl.querySelectorAll('.upcoming-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const entry = allEntries.find(ev => ev.id == item.dataset.id);
-                    if (entry) openModal(entry);
-                });
-            });
-        }
-
-        // ── Modal ────────────────────────────────────────────────
-        function openModal(entry = null, defaultDate = null) {
-            const modal    = document.getElementById('entry-modal');
-            const form     = document.getElementById('entry-form');
-            const titleEl  = document.getElementById('modal-title');
-            const delBtn   = document.getElementById('delete-entry-btn');
-
-            form.reset();
-            editingId = null;
-
+        window.openEntryModal = (entry = null) => {
+            document.getElementById('entry-modal').style.display = 'flex';
             if (entry) {
-                editingId = entry.id;
-                titleEl.textContent = 'Edit Entry';
-                document.getElementById('entry-id').value    = entry.id;
+                document.getElementById('entry-id').value = entry.id;
                 document.getElementById('entry-title').value = entry.title;
-                document.getElementById('entry-date').value  = entry.date;
-                document.getElementById('entry-type').value  = entry.type || 'article';
-                document.getElementById('entry-notes').value = entry.notes || '';
-                delBtn.style.display = 'inline-flex';
+                document.getElementById('entry-status').value = entry.status;
+                document.getElementById('entry-date').value = entry.date || '';
+                document.getElementById('entry-delete').style.display = 'block';
             } else {
-                titleEl.textContent = 'New Entry';
-                document.getElementById('entry-date').value  = defaultDate || toISODate(today);
-                document.getElementById('entry-type').value  = 'article';
-                delBtn.style.display = 'none';
+                document.getElementById('entry-form').reset();
+                document.getElementById('entry-id').value = '';
+                document.getElementById('entry-delete').style.display = 'none';
+            }
+        };
+
+        window.closeModal = () => {
+            document.getElementById('entry-modal').style.display = 'none';
+        };
+
+        function handleSaveEntry(e) {
+            e.preventDefault();
+            const id = document.getElementById('entry-id').value;
+            const data = {
+                title: document.getElementById('entry-title').value,
+                status: document.getElementById('entry-status').value,
+                date: document.getElementById('entry-date').value || null
+            };
+
+            if (id) {
+                const index = calendarEntries.findIndex(i => i.id === id);
+                calendarEntries[index] = { ...calendarEntries[index], ...data };
+            } else {
+                data.id = Math.random().toString();
+                calendarEntries.push(data);
             }
 
-            modal.classList.add('open');
+            closeModal();
+            renderCalendar(currentDate);
+            updateGoalWidget();
         }
 
-        function closeModal() {
-            document.getElementById('entry-modal').classList.remove('open');
-        }
-
-        // ── Listeners ────────────────────────────────────────────
-        function setupListeners() {
-            document.getElementById('prev-month').addEventListener('click', () => {
-                viewMonth--;
-                if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-                loadEntries();
-            });
-
-            document.getElementById('next-month').addEventListener('click', () => {
-                viewMonth++;
-                if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-                loadEntries();
-            });
-
-            document.getElementById('today-btn').addEventListener('click', () => {
-                viewYear  = today.getFullYear();
-                viewMonth = today.getMonth();
-                loadEntries();
-            });
-
-            document.getElementById('open-add-modal').addEventListener('click', () => openModal());
-            document.getElementById('close-modal').addEventListener('click', closeModal);
-            document.getElementById('cancel-btn').addEventListener('click', closeModal);
-
-            // Close on overlay click
-            document.getElementById('entry-modal').addEventListener('click', e => {
-                if (e.target === document.getElementById('entry-modal')) closeModal();
-            });
-
-            // Form submit
-            document.getElementById('entry-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const btn = document.getElementById('save-btn');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-
-                const payload = {
-                    title: document.getElementById('entry-title').value.trim(),
-                    date:  document.getElementById('entry-date').value,
-                    type:  document.getElementById('entry-type').value,
-                    notes: document.getElementById('entry-notes').value.trim() || null,
-                };
-
-                if (editingId) {
-                    await updateCalendarEntry(editingId, payload);
-                } else {
-                    await createCalendarEntry(payload);
-                }
-
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
+        function handleDeleteEntry() {
+            const id = document.getElementById('entry-id').value;
+            if (confirm("Delete this calendar entry?")) {
+                calendarEntries = calendarEntries.filter(e => e.id !== id);
                 closeModal();
-                await loadEntries();
-            });
-
-            // Delete
-            document.getElementById('delete-entry-btn').addEventListener('click', async () => {
-                if (!editingId || !confirm('Delete this entry?')) return;
-                await deleteCalendarEntry(editingId);
-                closeModal();
-                await loadEntries();
-            });
+                renderCalendar(currentDate);
+            }
         }
 
-        // ── Helpers ──────────────────────────────────────────────
-        function toISODate(d) {
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        }
+        window.setGoal = () => {
+            const current = localStorage.getItem('monthly_post_goal') || '4';
+            const newGoal = prompt("Target number of posts this month?", current);
+            if (newGoal && !isNaN(newGoal)) {
+                localStorage.setItem('monthly_post_goal', newGoal);
+                updateGoalWidget();
+            }
+        };
 
-        function capitalize(str) {
-            return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-        }
+        function updateGoalWidget() {
+            const goal = parseInt(localStorage.getItem('monthly_post_goal') || '4');
+            document.getElementById('goal-count').textContent = goal;
 
-        function formatDateLabel(date) {
-            const todayISO = toISODate(today);
-            const iso      = toISODate(date);
-            const diff     = Math.round((date - today) / 86400000);
-
-            if (iso === todayISO) return 'Today';
-            if (diff === 1)       return 'Tomorrow';
-            if (diff < 7)         return `${DAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()].slice(0,3)}`;
-            return `${date.getDate()} ${MONTHS[date.getMonth()].slice(0,3)} ${date.getFullYear()}`;
+            // In real app, query `posts` table for where published_at is within this month
+            // Here we count the ones in our mock state
+            const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+            const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString();
+            
+            const publishedThisMonth = calendarEntries.filter(e => e.status === 'published' && e.date >= currentMonthStart.split('T')[0] && e.date <= currentMonthEnd.split('T')[0]).length;
+            
+            const pct = Math.min(100, Math.round((publishedThisMonth / goal) * 100));
+            document.getElementById('goal-bar').style.width = pct + '%';
         }
     </script>
 </body>
-
 </html>

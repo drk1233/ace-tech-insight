@@ -90,8 +90,8 @@
                 </div>
             </div>
 
-            <!-- Charts Row -->
-            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+            <!-- Charts Row 1 -->
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
 
                 <!-- Line Chart: Traffic -->
                 <div class="panel" style="margin-bottom: 0;">
@@ -99,20 +99,33 @@
                         <h3 class="panel-title">Views over Time</h3>
                     </div>
                     <div class="panel-body">
-                        <canvas id="viewsChart" height="100"></canvas>
+                        <canvas id="viewsChart" height="200"></canvas>
                     </div>
                 </div>
 
+                <!-- Line Chart: Subscribers -->
+                <div class="panel" style="margin-bottom: 0;">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Subscriber Growth</h3>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="subsChart" height="200"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid" style="margin-bottom: 2rem;">
                 <!-- Bar Chart: Top Posts -->
                 <div class="panel" style="margin-bottom: 0;">
                     <div class="panel-header">
                         <h3 class="panel-title">Top 5 by Views</h3>
                     </div>
                     <div class="panel-body">
-                        <canvas id="topPostsChart" height="230"></canvas>
+                        <canvas id="topPostsChart" height="80"></canvas>
                     </div>
                 </div>
-
             </div>
 
             <!-- All Content Performance Table -->
@@ -148,6 +161,7 @@
         import { formatDate } from '/js/utils.js';
 
         let viewsChartObj = null;
+        let subsChartObj = null;
         let topPostsChartObj = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -200,7 +214,8 @@
                 document.getElementById('stat-growth').textContent = '+' + recentSubs;
             }
 
-            renderViewsChart();
+            renderViewsChart(days);
+            renderSubsChart(days);
             renderTopPostsChart(posts);
             renderPerformanceTable(posts);
         }
@@ -220,9 +235,9 @@
             return { labels, data };
         }
 
-        function renderViewsChart() {
+        function renderViewsChart(targetDays) {
             const ctx = document.getElementById('viewsChart').getContext('2d');
-            const targetDays = parseInt(document.getElementById('date-range').value) || 30;
+            targetDays = isNaN(targetDays) ? 30 : targetDays;
             const timeline = generateMockTimeline(targetDays);
 
             if (viewsChartObj) viewsChartObj.destroy();
@@ -250,8 +265,15 @@
                 },
                 options: {
                     responsive: true,
+                    animation: {
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    },
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: true, mode: 'index', intersect: false }
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -260,6 +282,56 @@
                         x: {
                             grid: { display: false }
                         }
+                    }
+                }
+            });
+        }
+
+        function renderSubsChart(targetDays) {
+            const ctx = document.getElementById('subsChart').getContext('2d');
+            targetDays = isNaN(targetDays) ? 30 : targetDays;
+            const timeline = generateMockTimeline(targetDays);
+            
+            // Adjust mock data to look cumulative
+            let sum = 50;
+            const cumulativeData = timeline.data.map(val => {
+                sum += Math.floor(val / 10);
+                return sum;
+            });
+
+            if (subsChartObj) subsChartObj.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // Brand green
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+            subsChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeline.labels,
+                    datasets: [{
+                        label: 'Total Subscribers',
+                        data: cumulativeData,
+                        borderColor: '#10b981',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: { duration: 800, easing: 'easeOutQuart' },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: true, mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false } },
+                        x: { grid: { display: false } }
                     }
                 }
             });

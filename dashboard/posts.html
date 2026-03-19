@@ -53,6 +53,9 @@
             <!-- Bulk Actions Toolbar -->
             <div id="bulk-actions" class="panel" style="display: none; padding: 1rem; margin-bottom: 1.5rem; flex-direction: row; gap: 1rem; align-items: center;">
                 <span class="text-sm font-semibold"><span id="selected-count">0</span> selected</span>
+                <select id="bulk-category" class="form-control text-sm" style="width: auto; margin-bottom: 0;">
+                    <option value="">Move to Category...</option>
+                </select>
                 <button class="btn btn-outline text-sm" id="btn-bulk-publish"><i class="fas fa-check"></i> Publish Selected</button>
                 <button class="btn btn-outline text-sm text-red" id="btn-bulk-draft"><i class="fas fa-times"></i> Draft Selected</button>
                 <button class="btn btn-outline text-sm text-red" id="btn-bulk-delete" style="border-color: var(--accent-red); margin-left: auto;"><i class="fas fa-trash"></i> Delete Selected</button>
@@ -106,8 +109,8 @@
                     style="border-top: 1px solid var(--border-color);">
                     <div class="text-sm text-secondary">Showing <span id="post-count">0</span> posts</div>
                     <div class="flex gap-sm">
-                        <button class="btn btn-outline text-sm" disabled>Previous</button>
-                        <button class="btn btn-outline text-sm" disabled>Next</button>
+                        <button class="btn btn-outline text-sm" id="btn-prev" disabled>Previous</button>
+                        <button class="btn btn-outline text-sm" id="btn-next" disabled>Next</button>
                     </div>
                 </div>
             </div>
@@ -121,9 +124,12 @@
         import { formatDate } from '/js/utils.js';
 
         let allPosts = [];
+        let categoriesList = [];
         let selectedIds = new Set();
         let sortCol = 'date';
         let sortDesc = true;
+        let currentPage = 1;
+        const perPage = 20;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const session = await requireAuth();
@@ -134,9 +140,13 @@
             await loadPosts();
 
             // Bind filters
-            document.getElementById('search-input').addEventListener('input', renderTable);
-            document.getElementById('filter-status').addEventListener('change', renderTable);
-            document.getElementById('filter-category').addEventListener('change', renderTable);
+            document.getElementById('search-input').addEventListener('input', () => { currentPage = 1; renderTable(); });
+            document.getElementById('filter-status').addEventListener('change', () => { currentPage = 1; renderTable(); });
+            document.getElementById('filter-category').addEventListener('change', () => { currentPage = 1; renderTable(); });
+            
+            // Pagination binds
+            document.getElementById('btn-prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
+            document.getElementById('btn-next').addEventListener('click', () => { currentPage++; renderTable(); });
             
             // Bind Sort
             document.querySelectorAll('.sortable').forEach(th => {
@@ -164,17 +174,22 @@
             document.getElementById('btn-bulk-publish').addEventListener('click', () => bulkUpdateStatus('published'));
             document.getElementById('btn-bulk-draft').addEventListener('click', () => bulkUpdateStatus('draft'));
             document.getElementById('btn-bulk-delete').addEventListener('click', bulkDelete);
+            document.getElementById('bulk-category').addEventListener('change', (e) => {
+                const val = e.target.value;
+                if(val) bulkUpdateCategory(val);
+                e.target.value = "";
+            });
         });
 
         async function loadFilters() {
             const { data } = await getCategories();
             if (data) {
-                const select = document.getElementById('filter-category');
+                categoriesList = data;
+                const filterSelect = document.getElementById('filter-category');
+                const bulkSelect = document.getElementById('bulk-category');
                 data.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat.id;
-                    opt.textContent = cat.name;
-                    select.appendChild(opt);
+                    filterSelect.appendChild(new Option(cat.name, cat.id));
+                    bulkSelect.appendChild(new Option(cat.name, cat.id));
                 });
             }
         }
@@ -218,16 +233,25 @@
                 return 0;
             });
 
-            document.getElementById('post-count').textContent = filtered.length;
+            const total = filtered.length;
+            const maxPage = Math.ceil(total / perPage) || 1;
+            if (currentPage > maxPage) currentPage = maxPage;
+            
+            const startIdx = (currentPage - 1) * perPage;
+            const paged = filtered.slice(startIdx, startIdx + perPage);
+
+            document.getElementById('post-count').textContent = total === 0 ? "0" : `${startIdx + 1}-${startIdx + paged.length} of ${total}`;
+            document.getElementById('btn-prev').disabled = currentPage <= 1;
+            document.getElementById('btn-next').disabled = currentPage >= maxPage;
 
             const table = document.getElementById('posts-table').querySelector('tbody');
 
-            if (filtered.length === 0) {
+            if (paged.length === 0) {
                 table.innerHTML = `<tr><td colspan="7" class="text-center text-secondary">No posts found matching criteria.</td></tr>`;
                 return;
             }
 
-            table.innerHTML = filtered.map(post => {
+            table.innerHTML = paged.map(post => {
                 const status = post.status || (post.published ? 'published' : 'draft');
                 const badgeClass = status === 'published' ? 'status-published' : status === 'scheduled' ? 'status-scheduled' : 'status-draft';
                 const badgeLabel = status.charAt(0).toUpperCase() + status.slice(1);
@@ -248,6 +272,7 @@
                     <td>
                         <div class="flex gap-sm">
                             <button class="action-btn" title="Edit" onclick="window.location.href='/dashboard/editor.html?id=${post.id}'"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn featured-btn" title="Toggle Featured" data-id="${post.id}"><i class="fas fa-star" style="color: ${post.featured ? 'var(--brand-orange)' : ''}"></i></button>
                             <button class="action-btn duplicate-btn" title="Duplicate" data-id="${post.id}"><i class="fas fa-copy"></i></button>
                             <button class="action-btn delete" title="Delete" data-id="${post.id}"><i class="fas fa-trash"></i></button>
                         </div>
@@ -287,6 +312,20 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.currentTarget.dataset.id;
                     await duplicatePost(id);
+                });
+            });
+
+            // Bind Featured events
+            table.querySelectorAll('.featured-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const post = allPosts.find(p => p.id === id);
+                    if (post) {
+                        const newFeatured = !post.featured;
+                        post.featured = newFeatured;
+                        await updatePost(id, { featured: newFeatured });
+                        renderTable();
+                    }
                 });
             });
 
@@ -366,6 +405,24 @@
                 selectedIds.clear();
                 renderTable();
             }
+        }
+        
+        async function bulkUpdateCategory(categoryId) {
+            if (selectedIds.size === 0) return;
+            const categoryName = categoriesList.find(c => c.id === categoryId)?.name || "selected category";
+            if (!confirm(`Move ${selectedIds.size} posts to ${categoryName}?`)) return;
+            
+            const ids = Array.from(selectedIds);
+            for (let id of ids) {
+                await updatePost(id, { category_id: categoryId });
+                const post = allPosts.find(p => p.id === id);
+                if (post) {
+                    post.category_id = categoryId;
+                    post.categories = { name: categoryName };
+                }
+            }
+            selectedIds.clear();
+            renderTable();
         }
     </script>
 </body>

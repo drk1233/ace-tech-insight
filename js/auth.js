@@ -75,3 +75,21 @@ export async function requireAuth() {
     }
     return user;
 }
+
+/**
+ * Sends a password reset email to the user.
+ * @param {string} email 
+ * @returns {object} { error } - error object if request fails
+ */
+export async function resetPassword(email) {
+    try {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/dashboard/reset-password.html',
+        });
+        if (error) throw error;
+        return { error: null };
+    } catch (error) {
+        console.error('Password reset error:', error.message);
+        return { error: error.message };
+    }
+}

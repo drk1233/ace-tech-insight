@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - Ace Admin</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    
+    <style>
+        .guide-section {
+            margin-bottom: 3rem;
+        }
+        .guide-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .guide-body {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .guide-body p { margin-bottom: 1rem; }
+        .guide-body ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .guide-body li { margin-bottom: 0.5rem; }
+        .guide-body strong { color: #ffffff; font-weight: 600; }
+        .guide-alert {
+            background: rgba(246, 139, 30, 0.1);
+            border-left: 4px solid var(--brand-orange);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+            color: #ffffff;
+        }
+        .kbd-style {
+            background: rgba(255,255,255,0.1);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: var(--brand-orange);
+        }
+        .guide-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        @media (max-width: 900px) { .guide-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="dashboard-body" style="display: none;">
+
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-layer-group text-orange" style="font-size: 1.5rem;"></i>
+            <a href="/public/index.html" class="sidebar-brand" target="_blank">Ace Admin</a>
+        </div>
+        
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core</div>
+            <a href="/dashboard/index.html" class="nav-item"><i class="fas fa-home"></i> Home</a>
+            <a href="/dashboard/editor.html" class="nav-item"><i class="fas fa-pen-nib"></i> Write Post</a>
+            <a href="/dashboard/posts.html" class="nav-item"><i class="fas fa-file-alt"></i> All Posts</a>
+            <a href="/dashboard/categories.html" class="nav-item"><i class="fas fa-folder"></i> Categories</a>
+            
+            <div class="nav-section-title">Community</div>
+            <a href="/dashboard/comments.html" class="nav-item"><i class="fas fa-comments"></i> Comments</a>
+            <a href="/dashboard/subscribers.html" class="nav-item"><i class="fas fa-users"></i> Subscribers</a>
+            
+            <div class="nav-section-title">Growth &amp; SEO</div>
+            <a href="/dashboard/analytics.html" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="/dashboard/keywords.html" class="nav-item"><i class="fas fa-key"></i> Keywords</a>
+            <a href="/dashboard/calendar.html" class="nav-item"><i class="far fa-calendar-alt"></i> Calendar</a>
+            
+            <div class="nav-section-title">System</div>
+            <a href="/dashboard/monetization.html" class="nav-item"><i class="fas fa-dollar-sign"></i> Monetization</a>
+            <a href="/dashboard/guide.html" class="nav-item active"><i class="fas fa-book"></i> User Guide</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-topbar">
+            <div class="topbar-left">
+                <h2 style="font-size: 1rem; font-weight: 600; margin: 0;">Dashboard User Guide</h2>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-outline text-sm" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Guide
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="panel">
+                <div class="panel-body" style="padding: 2rem;">
+                    
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <h1 style="font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">Ace Tech Insight Manual</h1>
+                        <p class="text-secondary text-lg">Your complete guide to managing the future of tech reporting.</p>
+                    </div>
+
+                    <div class="guide-grid">
+                        
+                        <!-- Left Column -->
+                        <div>
+                            <div class="guide-section">
+                                <h3 class="guide-title"><i class="fas fa-pen-nib text-orange"></i> Writing & Publishing</h3>
+                                <div class="guide-body">
+                                    <p>The <strong>Write Post</strong> editor is where the magic happens. Designed for distraction-free writing, it comes equipped with powerful integrations.</p>
+                                    <ul>
+                                        <li><strong>AI Assistant Panel:</strong> Highlight text in the editor to deploy Claude AI. You can instantly rewrite, expand, or fix grammar. Custom prompts let you generate entirely new sections.</li>
+                                        <li><strong>Gemini SEO Optimizer:</strong> Enter a Focus Keyword at the bottom. The AI generates target word counts, reveals competitor titles, and provides a real-time checklist of required NLP terms. <span style="color:#10b981;">Green</span> terms are injected successfully; <span style="color:#f43f5e;">Red</span> terms are missing.</li>
+                                        <li><strong>Unsplash Integration:</strong> Click the Image Icon or "Set Cover Image" to search millions of high-res photos. Clicking one instantly adds it to your post with proper photographer attribution!</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="guide-section">
+                                <h3 class="guide-title"><i class="fas fa-file-alt text-orange"></i> Managing Content</h3>
+                                <div class="guide-body">
+                                    <p>Control your entire library from the <strong>All Posts</strong> tab.</p>
+                                    <ul>
+                                        <li><strong>Quick Filters:</strong> Toggle between Drafts, Published, and Scheduled posts instantly using the top ribbons.</li>
+                                        <li><strong>Bulk Actions:</strong> Check the boxes next to your posts to use the Bulk Actions dropdown engine. You can mass-publish, delete, or change the category of 10+ posts simultaneously.</li>
+                                        <li><strong>Duplicate:</strong> Hit the duplicate button to instantly clone an existing post's rich text into a new draft.</li>
+                                    </ul>
+                                    <div class="guide-alert">
+                                        <i class="fas fa-shield-alt"></i> <strong>Safety Feature:</strong> In the Categories Manager, you cannot delete a Category or Tag if an active post is currently using it!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div>
+                             <div class="guide-section">
+                                <h3 class="guide-title"><i class="fas fa-chart-line text-orange"></i> Growth & Analytics</h3>
+                                <div class="guide-body">
+                                    <p>Track your pulse under the <strong>Analytics</strong> tab.</p>
+                                    <ul>
+                                        <li><strong>Traffic Validation:</strong> The core charts (Views & Subscribers) map automatically to the timeframe you select (7, 30, 90, All-time).</li>
+                                        <li><strong>Keyword Tracking:</strong> In the Keywords tab, monitor "breakout" tech terms. See their 0-100 Trend Velocity metric alongside estimated Search Volume. Click the <kbd-style>Create Post</kbd-style> button next to any suggested keyword idea to instantly launch a new Editor draft primed for that topic!</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="guide-section">
+                                <h3 class="guide-title"><i class="fas fa-users text-orange"></i> Community Management</h3>
+                                <div class="guide-body">
+                                    <p>Maintain the health of your blog interactions.</p>
+                                    <ul>
+                                        <li><strong>Comments Moderation:</strong> New comments from the public blog filter directly into the Pending queue. <strong>Pending remarks are intentionally frozen at the top of the table</strong> until you explicitly click <kbd-style>Approve</kbd-style> or <kbd-style>Reject</kbd-style>. They will not appear live until approved.</li>
+                                        <li><strong>Premium Paywalls:</strong> If you toggle "Premium" on a post in the Editor, the system automatically blurs the text and inserts a lock screen. Only active emails housed in your Subscribers Manager table can view it.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="guide-section">
+                                <h3 class="guide-title"><i class="fas fa-dollar-sign text-orange"></i> Monetization & Ads</h3>
+                                <div class="guide-body">
+                                    <p>Turn views into revenue.</p>
+                                    <ul>
+                                        <li><strong>Sponsorship Pipeline:</strong> Drag and drop prospective brand deals across the Kanban board from "Inbound" to "Negotiation" to "Active".</li>
+                                        <li><strong>Global Ad Toggles:</strong> Quickly flip the switches to turn off/on sidebar display ads or in-article native ads across the whole public network instantly!</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { requireAuth } from '/js/auth.js';
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await requireAuth();
+            if(session) document.body.style.display = 'flex';
+        });
+    </script>
+</body>
+</html>

@@ -179,12 +179,14 @@
                     <td class="text-secondary text-sm">${cat.slug}</td>
                     <td class="text-secondary text-sm">${categoryCounts[cat.id] || 0}</td>
                     <td style="text-align: right;">
+                        <button class="action-btn edit-btn" data-id="${cat.id}" data-name="${cat.name}" data-type="categories" title="Edit"><i class="fas fa-edit"></i></button>
                         <button class="action-btn delete" data-id="${cat.id}" data-type="category" title="Delete"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('');
 
             bindDeleteButtons('category');
+            bindEditButtons('categories');
         }
 
         async function loadTagsManager() {
@@ -202,12 +204,14 @@
                     <td class="text-secondary text-sm">${tag.slug}</td>
                     <td class="text-secondary text-sm">${tagCounts[tag.id] || 0}</td>
                     <td style="text-align: right;">
+                        <button class="action-btn edit-btn" data-id="${tag.id}" data-name="${tag.name}" data-type="tags" title="Edit"><i class="fas fa-edit"></i></button>
                         <button class="action-btn delete" data-id="${tag.id}" data-type="tag" title="Delete"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('');
 
             bindDeleteButtons('tag');
+            bindEditButtons('tags');
         }
 
         async function handleAddCategory(e) {
@@ -251,10 +255,36 @@
             document.querySelectorAll(selector).forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.currentTarget.dataset.id;
-                    if (confirm(`Delete this ${type}? This might break articles using it.`)) {
+                    const count = type === 'category' ? (categoryCounts[id] || 0) : (tagCounts[id] || 0);
+                    if (count > 0) {
+                        alert(`Cannot delete this ${type} because it has ${count} post(s). Reassign or delete the posts first.`);
+                        return;
+                    }
+                    if (confirm(`Delete this ${type}? This action cannot be undone.`)) {
                         const { error } = await supabase.from(table).delete().eq('id', id);
                         if (error) alert('Delete failed: ' + error.message);
                         else reloadFunc();
+                    }
+                });
+            });
+        }
+
+        function bindEditButtons(tableType) {
+            const selector = tableType === 'categories' ? '#categories-table .edit-btn' : '#tags-table .edit-btn';
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const oldName = e.currentTarget.dataset.name;
+                    const newName = prompt(`Enter new name for this ${tableType.slice(0,-1)}:`, oldName);
+                    
+                    if (newName && newName.trim() !== oldName) {
+                        const slug = createSlug(newName.trim());
+                        const { error } = await supabase.from(tableType).update({ name: newName.trim(), slug }).eq('id', id);
+                        if (error) alert('Edit failed: ' + error.message);
+                        else {
+                            if (tableType === 'categories') loadCategoriesManager();
+                            else loadTagsManager();
+                        }
                     }
                 });
             });
